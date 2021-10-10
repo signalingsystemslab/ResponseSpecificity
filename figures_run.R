@@ -159,6 +159,73 @@ plot_pca=function (file, info.name, info.type, title = "", labels = TRUE,
   }
 }
 
+intersect_doPCA_from_file_and_project_second_dataset = function (file, file2, train_string, center = TRUE, scale = FALSE, 
+          fread = F) {
+  if (fread == T) {
+    data1 = fread(file)
+    data1 = data[rowSums((data1[, -1, with = F] == 0)) < 
+                   ncol(data1[-1]), ]
+    data2 = fread(file2)
+    data1 = data1[!duplicated(data1[, 1, with = F]), ]
+    data2 = data2[!duplicated(data2[, 1, with = F]), ]
+    common.genes = intersect_all(data[, 1, with = F], data2[, 
+                                                            1, with = F])
+    data1 = data1[data1[, 1, with = F] %in% common.genes, 
+    ]
+    data2 = data2[data2[, 1, with = F] %in% common.genes, 
+    ]
+    data1 = data1[order(data1[, 1, with = F]), ]
+    data2 = data2[order(data2[, 1, with = F]), ]
+    rownames(data1) = make.names(data1[, 1], unique = TRUE)
+    t.data = data.frame(t(data1[, -1, with = F]))
+  }
+  else {
+    data1 = read.delim(file, header = T, stringsAsFactors = F)
+    data2 = read.delim(file2, header = T, stringsAsFactors = F)
+    data1 = data1[!duplicated(data1[, 1]), ]
+    data2 = data2[!duplicated(data2[, 1]), ]
+    data1 = data1[rowSums((data1[, -1] == 0)) < ncol(data1[-1]), 
+    ]
+    common.genes <- intersect((data1[, 1]), (data2[, 1]))
+    data <- data1[(data1[, 1]) %in% common.genes, ]
+    data2 <- data2[(data2[, 1]) %in% common.genes, ]
+    data = data[order(data[, 1]), ]
+    data2 = data2[order(data2[, 1]), ]
+    t.data = t(data[, -1])
+  }
+  pca <- prcomp(t.data, scale = scale, center = center)
+  pca_scores = pca$x
+  pca_scores = cbind(Score = rownames(pca_scores), pca_scores)
+  pca_loadings = pca$rotation
+  pca_loadings = cbind(Loading = data[, 1], pca_loadings)
+  pca_evalues = pca$sdev
+  pca_scale = pca$scale
+  name = sub(".txt", "", file)
+  savename = paste(name, "_prcomp_scores.txt", sep = "")
+  write.table(pca_scores, savename, sep = "\t", row.names = FALSE, 
+              quote = FALSE)
+  savename = paste(name, "_prcomp_loadings.txt", sep = "")
+  write.table(pca_loadings, savename, sep = "\t", row.names = FALSE, 
+              quote = FALSE)
+  savename = paste(name, "_prcomp_sdev.txt", sep = "")
+  write.table(pca_evalues, savename, sep = "\t", row.names = FALSE, 
+              quote = FALSE)
+  print(summary(pca))
+  screeplot(pca)
+  t.data2 = t(data2[, -1])
+  rotated.data2 = scale(t.data2, pca$center, pca$scale) %*% 
+    pca$rotation
+  rotated.data2 = cbind(Sample = rownames(rotated.data2), 
+                        rotated.data2)
+  name2 = sub(".txt", "", file2)
+  savename_intermed = paste(name2, train_string, sep = "_")
+  savename2 = paste(savename_intermed, "_prcomp_rotated.txt", 
+                    sep = "")
+  write.table(rotated.data2, savename2, sep = "\t", row.names = FALSE, 
+              quote = FALSE)
+  rotated.data2
+}
+
 plot_pca_projection=function (file, rotated.file, info.name, info.type, info.name2, 
                               info.type2, title = "Projection", labels = F, PCx = "PC1", 
                               PCy = "PC2", pt.size=1, ellipse = F, conf = 0.95, fliph = F, flipv = F, 
@@ -1116,9 +1183,6 @@ p=pheatmap(na.omit(dcast[(dcast[,4] > .7),4, drop=F]), scale = "none", clusterin
            cluster_cols = F, cluster_rows = T, show_rownames = T)
 row_order = as.character(na.omit(dcast$gene[(dcast[,4] > .7)])[p$tree_row$order])
 
-# Figure 3d----
-
-
 # Figure 3e----
 collect = read.delim("./infotheo/channel_capacity_pairwise_M0rep2only_ISnorm_biological_categories3.txt")
 collect$pair = paste0(collect$stim1,"_", collect$stim2)
@@ -1569,7 +1633,28 @@ p1=ggplot(umap.projected.layout, aes(X1, X2))+geom_point(aes(color = stimulus),s
 p2=ggplot(umap.projected.layout, aes(X1, X2))+geom_point(aes(color = type),size=0.01)+theme_bw(base_size = 18)+xlab("UMAP1")+ylab("UMAP2")
 p1|p2
 
-# Figure 5c (distance metric M0, M1, M2) ---- 
+macro = readRDS("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr.rds")
+
+if(1){
+  library(scales)
+  time="3hr"
+  red = "pca"
+  wanted = rownames(macro@meta.data)[macro@meta.data$timept==time&macro@meta.data$type=="M0"]
+  list = as.list(wanted);  names(list) = macro@meta.data$stimulus[match(list, rownames(macro@meta.data))]
+  list = split(unlist(list, use.names = FALSE), rep(names(list), lengths(list))) #merge under unique names
+  p1=DimPlot(object = macro, cells.highlight = list, reduction = red, group.by = "stimulus", raster = F,sizes.highlight=0.1,cols.highlight = c(rev(hue_pal() (length( unique(names(list)) )) ) ),pt.size = 0.1)+theme(legend.position = "None")
+  wanted = rownames(macro@meta.data)[macro@meta.data$timept==time&macro@meta.data$type=="M1_IFNg"]
+  list = as.list(wanted);  names(list) = macro@meta.data$stimulus[match(list, rownames(macro@meta.data))]
+  list = split(unlist(list, use.names = FALSE), rep(names(list), lengths(list))) #merge under unique names
+  p2=DimPlot(object = macro, cells.highlight = list, reduction = red, group.by = "stimulus", raster = F,sizes.highlight=0.1,cols.highlight = c(rev(hue_pal() (length( unique(names(list)) )) ) ),pt.size = 0.1)+theme(legend.position = "None")
+  wanted = rownames(macro@meta.data)[macro@meta.data$timept==time&macro@meta.data$type=="M2_IL4"]
+  list = as.list(wanted);  names(list) = macro@meta.data$stimulus[match(list, rownames(macro@meta.data))]
+  list = split(unlist(list, use.names = FALSE), rep(names(list), lengths(list))) #merge under unique names
+  p3=DimPlot(object = macro, cells.highlight = list, reduction = red, group.by = "stimulus", raster = F,sizes.highlight=0.1,cols.highlight = c(rev(hue_pal() (length( unique(names(list)) )) ) ),pt.size = 0.1)+theme(legend.position = "None")
+  p1|p2|p3
+}
+
+# Figure 5cd (distance metric M0, M1, M2) ---- 
 macro = readRDS("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr.rds")
 DimPlot(macro, reduction = "tsne", group.by = "stimulus")
 DimPlot(macro, reduction = "tsne", group.by = "type")
@@ -1640,11 +1725,1057 @@ pheatmap(collect_distances.mat,
          show_rownames = F,
          cluster_rows = F, cluster_cols = F, clustering_method = "ward.D2", border_color = "white")
 
+
+# Figure 5e----
+collect_all.M0 = read.delim("./infotheo/SLEMI_singlegene_collectall_M0_rep2only_ISnorm_500genes.txt")
+collect_all.M1 = read.delim("./infotheo/SLEMI_singlegene_collectall_M1_IFNg_ISnorm_500genes.txt")
+collect_all.M2 = read.delim("./infotheo/SLEMI_singlegene_collectall_M2_IL4_gt80_ISnorm_500genes.txt")
+
+collect_all.M0$type = "M0"
+collect_all.M1$type = "M1"
+collect_all.M2$type = "M2"
+
+collect_all = rbind(collect_all.M0, collect_all.M1, collect_all.M2)
+
+#graph it USE THIS
+ggplot(collect_all[grepl("3hr", collect_all$time),], aes( (cc)))+ 
+  geom_density(aes(color = type,fill=type),alpha=0.2, size = 1)+ theme_bw(base_size = 16)+
+  # geom_point(aes(color = time),position = position_jitter(seed = 1))+
+  ggtitle("Single gene output")+
+  facet_wrap(~type, ncol=3, scales = "fixed")+
+  # geom_vline(xintercept = (log10(6)/log10(2)), linetype="dashed", size = 1)+
+  geom_vline(xintercept = (collect_all$cc[grepl("M0", collect_all$type)&grepl("Cxcl10", collect_all$gene)&grepl("3hr", collect_all$time)]), color= "red", linetype="dashed", size = 1)+
+  geom_vline(xintercept = (collect_all$cc[grepl("M1", collect_all$type)&grepl("Cxcl10", collect_all$gene)&grepl("3hr", collect_all$time)]), color= "green3", linetype="dashed", size = 1)+
+  geom_vline(xintercept = (collect_all$cc[grepl("M2", collect_all$type)&grepl("Cxcl10", collect_all$gene)&grepl("3hr", collect_all$time)]), color= "blue", linetype="dashed", size = 1)
+
+# Figure 5fg----
+# Load previously trained M0 machine learning models 
+list = list.files(pattern= "MLfit_rf_M0all")
+# for (i in c("knn", "pls", "rf", "svmLinear", "svmRadial") ){
+for (i in c("rf") ){
+  for (j in c("3hr") ){
+    tmp = readRDS(paste0("./analysis_rhapsody_500genes/MLfit_", i, "_M0all.Dec2020_500genes_", j, ".rds"))
+    assign(paste0(i, "_", j), tmp)
+  }
+}
+#load testing data for M1 M2, and test on M0 models----------
+for (i in c("3hr") ){
+  
+  # tmp = readRDS(paste0("./output/macrophage_M1_IFNg_500genes_DBEC.rds"))   # for testing M1
+  tmp = readRDS(paste0("./output/macrophage_M2_IL4_gt80_500genes_DBEC.rds")) # for testing M2
+  
+  
+  # tmp = readRDS(paste0("./output/macrophage_M0all_500genes_Dec2020.rds"))
+  
+  tmp = subset(tmp, subset=timept==i)
+  tmp.meta = tmp@meta.data
+  tmp2 = tmp[["ISnorm"]]@data
+  # tmp2 = tmp[["RNA"]]@data
+  tmp2 = data.frame(tmp2)
+  colnames(tmp2) = paste0(tmp.meta$stimulus, "_",tmp.meta$timept)
+  # rownames(tmp2) = gsub("-ENSMUST..*","", tmp[["SCT"]]@counts@Dimnames[[1]])
+  # rownames(tmp2) = gsub("..NM..*","", rownames(tmp2))
+  
+  my.dataframe = cbind(label = colnames(tmp2), data.frame(t(tmp2)))
+  # my.dataframe = my.dataframe[, colnames(my.dataframe) %in% c("label", genes)]
+  
+  set.seed(1)
+  inTraining <- createDataPartition(my.dataframe$label, p = .7, list = FALSE)
+  training <- my.dataframe[ inTraining,]
+  assign(paste0("testing", "_",i), my.dataframe[-inTraining,])
+  testing = my.dataframe[-inTraining,]
+  
+
+  fit_rf_default = get(paste0("rf_",i))
+  print(fit_rf_default)
+  rfClasses <- predict(fit_rf_default, newdata = testing)
+  confusion = confusionMatrix(data = rfClasses, as.factor(testing$label))
+  confusion.table = (confusion$table)
+  confusion.table = sweep(confusion.table, 2, colSums(confusion.table), FUN = '/')
+  pheatmap(confusion.table, cluster_rows = F, cluster_cols = F,
+           # colorRampPalette(c("lightblue", "white", "red"))(50),
+           # gaps_col = c(5,10,15,20,25,30), gaps_row = c(5,10,15,20,25,30),
+           breaks =  seq(0, 1, by = .01),
+           color = colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(length(seq(0, 1, by = .01) )),
+           display_numbers = T, fontsize_number = 16)
+  
+  predProbs <- extractProb(list(fit_rf_default),
+                           testX = testing[,-1], testY = testing$label)
+  predProbs = predProbs[order(predProbs$obs, decreasing = T),]
+  colors_list = list(obs = c(Unstim = "gray", CpG_0.25hr="#F8766D", IFNb_0.25hr="#B79F00",LPS_0.25hr= "#00BA38",P3CSK_0.25hr= "#00BFC4",PIC_0.25hr= "#619CFF",TNF_0.25hr= "#F564E3",
+                             CpG_1hr="#F8766D", IFNb_1hr="#B79F00",LPS_1hr= "#00BA38",P3CSK_1hr= "#00BFC4",PIC_1hr= "#619CFF",TNF_1hr= "#F564E3",
+                             CpG_3hr="#F8766D", IFNb_3hr="#B79F00",LPS_3hr= "#00BA38",P3CSK_3hr= "#00BFC4",PIC_3hr= "#619CFF",TNF_3hr= "#F564E3",
+                             CpG_8hr="#F8766D", IFNb_8hr="#B79F00",LPS_8hr= "#00BA38",P3CSK_8hr= "#00BFC4",PIC_8hr= "#619CFF",TNF_8hr= "#F564E3"),
+                     pred = c(Unstim = "gray", CpG_0.25hr="#F8766D", IFNb_0.25hr="#B79F00",LPS_0.25hr= "#00BA38",P3CSK_0.25hr= "#00BFC4",PIC_0.25hr= "#619CFF",TNF_0.25hr= "#F564E3",
+                              CpG_1hr="#F8766D", IFNb_1hr="#B79F00",LPS_1hr= "#00BA38",P3CSK_1hr= "#00BFC4",PIC_1hr= "#619CFF",TNF_1hr= "#F564E3",
+                              CpG_3hr="#F8766D", IFNb_3hr="#B79F00",LPS_3hr= "#00BA38",P3CSK_3hr= "#00BFC4",PIC_3hr= "#619CFF",TNF_3hr= "#F564E3",
+                              CpG_8hr="#F8766D", IFNb_8hr="#B79F00",LPS_8hr= "#00BA38",P3CSK_8hr= "#00BFC4",PIC_8hr= "#619CFF",TNF_8hr= "#F564E3"))
+  pheatmap(predProbs[predProbs$dataType == "Test",c(1:6)], scale = "none",cluster_rows = F, cluster_cols = F,
+           annotation_row = predProbs[predProbs$dataType == "Test",c(7:8)],
+           show_rownames = F, main = "prediction probabilities",
+           annotation_colors = colors_list)
+  plotClassProbs(predProbs)
+  plotClassProbs(predProbs[predProbs$dataType == "Test",])
+  
+  
+}
+
+
+#for testing M1/M2 plot summary stats-----
+table$time = c(
+  rep(3, 6))
+table$stim = c(rep(c("CpG","IFNb", "LPS",  "P3C", "PIC", "TNF"), 1))
+table$FPR = 1-table$Specificity
+table$FDR = 1-table$Precision
+table[is.na(table)] <-0
+
+ggplot(table[grepl("3", table$time),], aes(FPR, F1))+ geom_point(aes(color = stim), size=5)+
+  theme_bw(base_size = 16)
+
+ggplot(table[grepl("3", table$time),], aes(as.factor(time), FPR, fill = stim))+ geom_bar(position="dodge", stat="identity")+
+  theme_bw(base_size = 20)+ylim(c(0,.4))
+
+ggplot(table, aes(as.factor(time), fdr, fill = stim))+ geom_bar(position="dodge", stat="identity")+
+  theme_bw(base_size = 20)+ylim(c(0,1))
+ggplot(table, aes(as.factor(time), `Pos Pred Value`, fill = stim))+ geom_bar(position="dodge", stat="identity")+
+  theme_bw(base_size = 20)+ylim(c(0,1))
+
+
+table.m = melt(table[grepl("3",table$time),])
+ggplot(table.m[grepl("FPR|FDR", table.m$variable),], aes(stim, value, fill = stim))+ geom_bar(position="dodge", stat="identity")+
+  theme_bw(base_size = 20)+facet_grid(~variable)+theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+ggplot(table.m[grepl("F1|Balanced", table.m$variable),], aes(stim, value, fill = stim))+ geom_bar(position="dodge", stat="identity")+
+  theme_bw(base_size = 20)+facet_grid(~variable)+theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+
+
+# Figure 5h
+# biological functions---
+library(clusterProfiler)
+library(enrichplot)
+# BiocManager::install("enrichTF")
+# BiocManager::install("RcisTarget")
+# To support paralell execution:
+# BiocManager::install(c("doMC", "doRNG"))
+# For the examples in the follow-up section of the tutorial:
+# BiocManager::install(c("DT", "visNetwork"))
+library(enrichTF);library(RcisTarget)
+library(org.Mm.eg.db)
+library(DOSE)
+
+collect_all = read.delim("./infotheo/SLEMI_singlegene_M0M1M2_ISnorm_500genes.txt")
+dcast0 = dcast(collect_all[!grepl("0.25|0.5hr|^5hr|1hr|8h|24hr", collect_all$time),], gene~type+time, value.var = "cc")
+dcast0$M1_3hr.diff = dcast0$M0_3hr-dcast0$M1_3hr
+dcast0$M2_3hr.diff = dcast0$M0_3hr-dcast0$M2_3hr
+dcast0 = na.omit(dcast0)
+dcast0$clusterM1 = ifelse(dcast0$M1_3hr.diff >0.1, "DOWN", #used 0.2 for BP
+                          ifelse(dcast0$M1_3hr.diff <(-0.1), "UP",NA))
+dcast0$clusterM2 = ifelse(dcast0$M2_3hr.diff >0.1, "DOWN",  #used 0.2 for BP
+                          ifelse(dcast0$M2_3hr.diff <(-0.1), "UP",NA))
+dcast0$groups = ifelse((dcast0$clusterM1=="DOWN" & dcast0$clusterM2=="DOWN"), "bothDOWN",
+                       ifelse(dcast0$clusterM1=="DOWN", "M1onlyDOWN",
+                              ifelse(dcast0$clusterM2=="DOWN" , "M2onlyDOWN",
+                                     "bothUP"
+                              )))
+
+genes.to.label = c("Cxcl10","Tgtp1","Rsad2","Irf7","Trim21","Ifi205","Gbp7", 
+                   "Ccl5", "Tnf", "Tnfaip3","Gclm", "Il6",
+                   "Tnfsf9","Bcl2a1a","Bcl2a1d","Socs3")
+genes.to.label = c("Cxcl10","Rsad2","Irf7","Trim21","Icosl", "Cmpk2","Ifit3","Nfkbiz","Il4ra","Cxcl2",
+                   "Ccl5", "Tnf", "Il6", 
+                   "Tnfsf9","Socs3", "Icam1")
+rownames(dcast0) = dcast0$gene
+p1=ggplot(dcast0,  aes(M1_3hr.diff, M2_3hr.diff))+geom_point(aes(color = groups), size =2, alpha = 0.75)+
+  # geom_point(data = subset(dcast0, subset = gene %in% genes.to.label),size = 2, aes(fill = M0_3hr)) +
+  geom_point(data = subset(dcast0, subset = gene %in% genes.to.label),size = 2, color = "red",shape = 21) +
+  geom_hline(yintercept = 0)+geom_vline(xintercept = 0)+
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed")+theme_bw(base_size = 14)
+p1 <- LabelPoints(plot = p1, points = genes.to.label, color = "red", size = I(4),repel = T, xnudge=0.15,ynudge=0)
+p1
+
+#my genelist
+gene <- dcast0$gene
+gene.df <- bitr(gene, fromType = "SYMBOL",
+                toType = c("ENSEMBL", "ENTREZID"),
+                OrgDb = org.Mm.eg.db)
+head(gene.df)
+
+gene.df$cluster = dcast0$clusterM1[match(gene.df$SYMBOL, dcast0$gene)]
+# compared heatmap clusters
+ego =  clusterProfiler::compareCluster(geneClusters = ENTREZID~cluster, 
+                                       data=gene.df,
+                                       fun = "enrichGO", 
+                                       OrgDb = org.Mm.eg.db, 
+                                       ont           = "BP",
+                                       pAdjustMethod = "BH",
+                                       pvalueCutoff  = 0.01,
+                                       qvalueCutoff  = 0.05,
+                                       readable      = TRUE)
+ego2 <- clusterProfiler::simplify(ego, cutoff=0.7, by="p.adjust", select_fun=min)
+p1 <- dotplot(ego2, showCategory=3)
+p1
+
+gene.df$cluster = dcast0$clusterM2[match(gene.df$SYMBOL, dcast0$gene)]
+# compared heatmap clusters
+ego.M2 =  clusterProfiler::compareCluster(geneClusters = ENTREZID~cluster, 
+                                          data=gene.df,
+                                          fun = "enrichGO", 
+                                          OrgDb = org.Mm.eg.db, 
+                                          ont           = "BP",
+                                          pAdjustMethod = "BH",
+                                          pvalueCutoff  = 0.01,
+                                          qvalueCutoff  = 0.05,
+                                          readable      = TRUE)
+ego2.M2 <- clusterProfiler::simplify(ego.M2, cutoff=0.7, by="p.adjust", select_fun=min)
+p2 <- dotplot(ego2.M2, showCategory=3) 
+p2
+p1|p2
+
+# write.table(data.frame(ego2@compareClusterResult),"F://scRNAseq_macro/SuppTables/TableS4_M1_GO.txt",sep = "\t",quote=F,row.names = F)
+# write.table(data.frame(ego2.M2@compareClusterResult),"F://scRNAseq_macro/SuppTables/TableS4_M2_GO.txt",sep = "\t",quote=F,row.names = F)
+
+#TF enrichment-----
+# Load gene sets to analyze. e.g.:
+gene.df$cluster = dcast0$clusterM1[match(gene.df$SYMBOL, dcast0$gene)]
+geneList1 <- na.omit(gene.df$SYMBOL[gene.df$cluster=="DOWN"])
+geneList2 <- na.omit(gene.df$SYMBOL[gene.df$cluster=="UP"])
+gene.df$cluster = dcast0$clusterM2[match(gene.df$SYMBOL, dcast0$gene)]
+geneList3 <- na.omit(gene.df$SYMBOL[gene.df$cluster=="DOWN"])
+geneList4 <- na.omit(gene.df$SYMBOL[gene.df$cluster=="UP"])
+geneLists <- list(M1_DOWN = geneList1,M1_UP = geneList2,M2_DOWN = geneList3, M2_UP = geneList4 )
+head(geneLists$M1_DOWN)
+
+for (i in seq(1:4)){
+  print(i)
+  write.table(geneLists[[i]], paste0("./output/channelcapacity_M1M2_difference_", names(geneLists[i]),".txt"), quote=F,sep="\t",row.names=F) 
+}
+# cd /mnt/f/scRNAseq_macro/scRNAseq_macro/output/
+# findMotifs.pl channelcapacity_M1M2_difference_M1_DOWN.txt mouse /mnt/f/scRNAseq_macro/scRNAseq_macro/output/motif_cc/MotifResults1_M1_DOWN/ -start -1000 -end 100 -p 4
+# findMotifs.pl channelcapacity_M1M2_difference_M1_UP.txt mouse /mnt/f/scRNAseq_macro/scRNAseq_macro/output/motif_cc/MotifResults2_M1_UP/ -start -1000 -end 100 -p 4
+# findMotifs.pl channelcapacity_M1M2_difference_M2_DOWN.txt mouse /mnt/f/scRNAseq_macro/scRNAseq_macro/output/motif_cc/MotifResults3_M2_DOWN/ -start -1000 -end 100 -p 4
+# findMotifs.pl channelcapacity_M1M2_difference_M2_UP.txt mouse /mnt/f/scRNAseq_macro/scRNAseq_macro/output/motif_cc/MotifResults4_M2_UP/ -start -1000 -end 100 -p 4
+
+
+#plot motif output--------------------
+files = list.files("F://scRNAseq_macro/scRNAseq_macro/output/motif_cc/", "knownResults.txt", recursive = T)
+for (i in seq(1:4)){
+  tmp = read.delim(paste0("F://scRNAseq_macro/scRNAseq_macro/output/motif_cc/",files[i])) #files[1]
+  # tmp = tmp[tmp$q.value..Benjamini.<0.05,]
+  
+  frame = data.frame(tmp[,c(1,4)]) #plot lnpval
+  rownames(frame) = make.unique(as.character(frame$Motif.Name))
+  rownames(frame) = make.unique(gsub("/..*","", rownames(frame)))
+  frame.truncate = frame#[which(frame$Log.P.value < 0),]
+  frame.truncate$type = ifelse(grepl("(IRF)", rownames(frame.truncate)), "IRF", 
+                               ifelse(grepl("(RHD)", rownames(frame.truncate)), "RHD", 
+                                      ifelse(grepl("(bZIP)", rownames(frame.truncate)), "bZIP", 
+                                             ifelse(grepl("(Zf)", rownames(frame.truncate)), "Zf", 
+                                                    ifelse(grepl("(ETS|Ets)", rownames(frame.truncate)), "ETS", 
+                                                           ".other")))))
+  frame.truncate.500 = aggregate(frame.truncate[,c(2,3)], by = list(motif = frame.truncate$type), FUN = min)
+  assign(paste0("p",i), ggplot(frame.truncate.500[!grepl("other", frame.truncate.500$motif),], aes(motif, Log.P.value*-1, fill = motif))+
+           ylim(c(0,26))+
+           geom_bar(stat = "identity", position = position_dodge())+ geom_hline(yintercept = 3, linetype="dashed")+
+           theme_bw(base_size = 16)+theme(legend.position = "None"))
+}
+(p1|p2)/(p3|p4)
+
+###################################Figure 6
+# Figure 6a----
+# collect by keep top 20 forward selection on individual gene list for each timepoint-----
+library(foreach)
+library(doParallel)
+cores=detectCores()
+cl <- makeCluster(cores[1]-1) #not to overload your computer
+registerDoParallel(cl)
+
+collect_all = read.delim("./infotheo/SLEMI_singlegene_collectall_M0_rep2only_ISnorm_500genes.txt")
+# collect_all = read.delim("./infotheo/SLEMI_singlegene_collectall_M1_IFNg_ISnorm_500genes.txt")
+# collect_all = read.delim("./infotheo/SLEMI_singlegene_collectall_M2_IL4_gt80_ISnorm_500genes.txt")
+collect_all = collect_all[order(collect_all$cc, decreasing = T), ]
+
+collect = data.frame()
+collect_dimensionbest = data.frame()
+
+for (i in c("3hr")){
+  print(i)
+  macro = readRDS(paste0("./output/macrophage_M0_rep2only_500genes_DBEC.rds"))
+  # macro = readRDS(paste0("./output/macrophage_M1_IFNg_500genes_DBEC.rds"))
+  # macro = readRDS(paste0("./output/macrophage_M2_IL4_gt80_500genes_DBEC.rds"))
+  macro = subset(macro, subset= timept ==i)
+  
+  collect_dimension = (collect_all[grepl(i, collect_all$time),][(1:20),]) #start 1D
+  # collect_dimension = readRDS(paste0("./infotheo/old/collect_dimension",i,"_10.rds")) #start 10D
+  # collect_dimension = readRDS(paste0("./infotheo/collect_dimension",i,"_20.rds")) #start 20D
+  # collect_dimension = readRDS(paste0("./infotheo/collect_dimension",i,"_30.rds")) #start 30D
+  
+  data = macro[["ISnorm"]]@data
+  # data = macro[["SCT"]]@data
+  data = data.frame(data)
+  meta = macro@meta.data
+  colnames(data) = paste0(meta$stimulus, "_",meta$timept)
+  my.dataframe = cbind(label = colnames(data), data.frame(t(data)))
+  my.dataframe$label = as.numeric(factor(my.dataframe$label, levels = sort(unique(my.dataframe$label))))
+  rownames(my.dataframe) = seq(1:nrow(my.dataframe))
+  
+  for (d in c(1:25)){
+    print(paste0("dimension: ",d))
+    
+    collect_dimension = collect_dimension[order(collect_dimension$cc, decreasing =T),]
+    collect_dimension = collect_dimension[!duplicated(collect_dimension[,c(1:3)]), ]
+    genesets = collect_dimension$gene[c(1:20)]
+    print(genesets)
+    
+    collect_dimension_seed = data.frame() #start over to collect new dim's set once got the top20
+    # for (g in 1:length(genesets)){
+    collect_dimension = foreach(g = 1:length(genesets), .combine = rbind, .packages=c("SLEMI")) %dopar% {
+      genes = genesets[[g]]
+      print(genes)
+      
+      other_genes = c(colnames(my.dataframe)[!colnames(my.dataframe) %in% genes])
+      other_genes
+      for (a in 1:length(other_genes)){
+        added_gene = other_genes[a+1]
+        added_gene
+        my.dataframe.subset = my.dataframe[, colnames(my.dataframe) %in% c("label", genes, added_gene)]
+        str(my.dataframe.subset)
+        
+        output_capacity <- capacity_logreg_main(my.dataframe.subset, signal = "label", response = colnames(my.dataframe.subset)[-1],
+                                                output_path = NULL, testing = F)
+        
+        tmp = data.frame(time = i,  dim = d, cc = output_capacity$cc)
+        tmp$gene = list(c(genes, added_gene))
+        collect_dimension_seed = rbind(collect_dimension_seed, tmp)
+      }
+      collect_dimension_seed #rbinds all to collect_dimension
+    }
+    collect_dimension = collect_dimension[order(collect_dimension$cc, decreasing =T),]
+    saveRDS(collect_dimension, paste0("./infotheo/collect_dimension",i,"_",d,"_ISnorm3.rds"))
+    
+    collect_dimensionbest = rbind(collect_dimensionbest,
+                                  data.frame(collect_dimension[1,]))
+    
+  }
+}
+
+# saveRDS(collect_dimensionbest, "./infotheo/collect_dimensionbest_ISnorm2.rds")
+# saveRDS(collect_dimensionbest, "./infotheo/collect_dimensionbest_M1_ISnorm2.rds")
+# saveRDS(collect_dimensionbest, "./infotheo/collect_dimensionbest_M2_ISnorm2.rds")
+
+
+ggplot(collect_dimensionbest, aes(dim+1, cc))+ylim(0, 2.7)+
+  geom_line(aes(color = time, group = time),size =2)+theme_bw(base_size = 14)+
+  geom_hline(yintercept = (log10(6)/log10(2)), linetype="dotted", size = 1)
+
+# Figure 6b----
+mutual = readRDS("./infotheo/collect_dimensionbest_ISnorm_Feb2021.rds")
+genes.top2 = unlist(mutual[28,4])
+genes.top5 = unlist(mutual[31,4])
+genes.top15 = unlist(mutual[41,4])
+genes = genes.top15 #c(genes.top2, genes.top5, genes.top15)
+
+genesetname = "MItop15"
+
+for (i in c("3hr")){
+  
+  print(i)
+
+    macro = readRDS(paste0("./output/macrophage_M0all_500genes_Dec2020.rds"))
+ 
+  filename = "M0all.Dec2020"
+
+    macro = subset(macro, subset= timept==i)
+  # macro = subset(macro, subset= stimulus!="CpG")
+  
+  # data = macro[["RNA"]]@data
+  data = macro[["ISnorm"]]@data
+  data = data.frame(data)
+  meta = macro@meta.data
+  colnames(data) = paste0(meta$stimulus, "_",meta$timept)
+  # my.dataframe = cbind(label = colnames(data), data.frame(t(data)))
+  my.dataframe = my.dataframe[, colnames(my.dataframe) %in% c("label", genes)]
+  
+  #--------------------------------------ML using CARET-----------------------------------------
+  library(caret)
+  set.seed(1)
+  inTraining <- createDataPartition(my.dataframe$label, p = .7, list = FALSE)
+  training <- my.dataframe[ inTraining,]
+  testing  <- my.dataframe[-inTraining,]
+  
+  if (0) {#plsr --------------------------------------------------------------------------------
+    fitControl <- trainControl(method = "repeatedcv", repeats = 10, classProbs = T)
+    fit_pls <- train(label ~ .,  data = training,
+                     method = "pls",
+                     ## Center and scale the predictors for the training
+                     ## set and all future samples.
+                     # preProc = c("center", "scale"),
+                     tuneLength = 20,
+                     trControl = fitControl,
+                     metric = "ROC")
+    fit_pls
+    ggplot(fit_pls)
+    plsClasses <- predict(fit_pls, newdata = testing)
+    plsProbs <- predict(fit_pls, newdata = testing, type = "prob")
+    head(plsClasses)
+    head(plsProbs)
+    confusion = confusionMatrix(data = plsClasses, as.factor(testing$label))
+    confusion.table = (confusion$table)
+    confusion.table = sweep(confusion.table, 2, colSums(confusion.table), FUN = '/')
+    p=pheatmap(confusion.table, cluster_rows = F, cluster_cols = F, 
+               # colorRampPalette(c("lightblue", "white", "red"))(50),
+               # gaps_col = c(5,10,15,20,25,30), gaps_row = c(5,10,15,20,25,30), 
+               breaks =  seq(0, 1, by = .01),
+               color = colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(length(seq(0, 1, by = .01) )),
+               display_numbers = T, fontsize_number = 14,main = paste0("pls_",filename,i)) 
+    # grid.text("Actual", y=-0.01, gp=gpar(fontsize=16))
+    # grid.text("Predicted", x=-0.02, rot=90, gp=gpar(fontsize=16))
+    
+    # varImp = varImp(fit_pls); varImp = varImp$importance
+    
+    # save the model to disk
+    ggsave(p, filename=paste0("./analysis_rhapsody_500genes/MLfit_pls_",filename,"_",genesetname,"_",i, ".png"))
+    saveRDS(fit_pls, paste0("./analysis_rhapsody_500genes/MLfit_pls_",filename,"_",genesetname,"_",i, ".rds"))
+  }
+  
+  if (1){ #random forest------------------------------------------------------------------------
+    print("running rf")
+    fitControl <- trainControl(method='repeatedcv', number=10, repeats=3)
+    metric <- "Accuracy" #Metric compare model is Accuracy
+    set.seed(1)
+    mtry <- sqrt(ncol(training) -1) #Number randomely variable selected is mtry
+    tunegrid <- expand.grid(.mtry=mtry)
+    fit_rf_default <- train(label~., 
+                            data=training, 
+                            method="rf", 
+                            metric='Accuracy', 
+                            tuneGrid=tunegrid, 
+                            trControl=fitControl)
+    
+    print(fit_rf_default)
+    rfClasses <- predict(fit_rf_default, newdata = testing)
+    confusion = confusionMatrix(data = rfClasses, as.factor(testing$label))
+    confusion.table = (confusion$table)
+    confusion.table = sweep(confusion.table, 2, colSums(confusion.table), FUN = '/')
+    p=pheatmap(confusion.table, cluster_rows = F, cluster_cols = F, 
+               # colorRampPalette(c("lightblue", "white", "red"))(50),
+               # gaps_col = c(5,10,15,20,25,30), gaps_row = c(5,10,15,20,25,30), 
+               breaks =  seq(0, 1, by = .01),
+               color = colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(length(seq(0, 1, by = .01) )),
+               display_numbers = T,fontsize_number = 14,main = paste0("rf_",filename,i))
+    rf_prob=predict(fit_rf_default, newdata = testing, type = "prob")
+    # varImp = varImp(fit_rf_default); 
+    # varImp = data.frame(varImp$importance)
+    
+    
+    # ggplot(varImp, aes(x=reorder(varnames, IncNodePurity), y=IncNodePurity, color=as.factor(var_categ))) + 
+    #   geom_point() +
+    #   geom_segment(aes(x=varnames,xend=varnames,y=0,yend=IncNodePurity)) +
+    #   scale_color_discrete(name="Variable Group") +
+    #   ylab("IncNodePurity") +
+    #   xlab("Variable Name") +
+    #   coord_flip()
+    # plot(varImp, top = 20)
+    ggsave(p, filename=paste0("./analysis_rhapsody_500genes/MLfit_rf_",filename,"_",genesetname,"_",i, ".png"))
+    saveRDS(fit_rf_default, paste0("./analysis_rhapsody_500genes/MLfit_rf_",filename,"_",genesetname,"_",i, ".rds")) #on poseidon then moved back
+  }
+  
+  if (0){ # SVM -------------------------------------------------------------------
+    
+    trctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+    set.seed(1)
+    
+    svm_Linear <- train(label ~., data = training, 
+                        method = "svmLinear",
+                        trControl=trctrl,
+                        # preProcess = c("center", "scale"),
+                        tuneLength = 10)
+    
+    svm_Linear
+    test_pred <- predict(svm_Linear, newdata = testing)
+    test_pred
+    confusion = confusionMatrix(test_pred, as.factor(testing$label) )
+    confusion.table = (confusion$table)
+    confusion.table = sweep(confusion.table, 2, colSums(confusion.table), FUN = '/')
+    p=pheatmap(confusion.table, cluster_rows = F, cluster_cols = F, 
+               # colorRampPalette(c("lightblue", "white", "red"))(50),
+               # gaps_col = c(5,10,15,20,25,30), gaps_row = c(5,10,15,20,25,30), 
+               breaks =  seq(0, 1, by = .01),
+               color = colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(length(seq(0, 1, by = .01) )),
+               display_numbers = T,fontsize_number = 14,main = paste0("svmL_",filename,i)) 
+    # varImp = varImp(svm_Linear); #varImp = varImp$importance
+    # plot(varImp, top = 20)
+    ggsave(p,filename=paste0("./analysis_rhapsody_500genes/MLfit_svmLinear_",filename,"_",genesetname,"_",i, ".png"))
+    saveRDS(svm_Linear, paste0("./analysis_rhapsody_500genes/MLfit_svmLinear_",filename,"_",genesetname,"_",i, ".rds")) #run on poseidon for mememory problems
+    
+  }
+  
+  if (0){ # SVM radial -------------------------------------------------------------------
+    
+    trctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+    set.seed(1)
+    
+    svm_Radial <- train(label ~., data = training,
+                        method = "svmRadial",
+                        trControl = trctrl,
+                        # preProcess = c("center","scale"),
+                        tuneLength = 10)
+    
+    # Print the best tuning parameter sigma and C that maximizes model accuracy
+    svm_Radial$bestTune
+    
+    svm_Radial
+    test_pred <- predict(svm_Radial, newdata = testing)
+    test_pred
+    confusion = confusionMatrix(test_pred, as.factor(testing$label) )
+    confusion.table = (confusion$table)
+    confusion.table = sweep(confusion.table, 2, colSums(confusion.table), FUN = '/')
+    p=pheatmap(confusion.table, cluster_rows = F, cluster_cols = F, 
+               # colorRampPalette(c("lightblue", "white", "red"))(50),
+               # gaps_col = c(5,10,15,20,25,30), gaps_row = c(5,10,15,20,25,30), 
+               breaks =  seq(0, 1, by = .01),
+               color = colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(length(seq(0, 1, by = .01) )),
+               display_numbers = T,fontsize_number = 14,main = paste0("svmR_",filename,i)) 
+    # varImp = varImp(svm_Radial); #varImp = varImp$importance
+    # plot(varImp, top = 20)
+    # saveRDS(svm_Radial, paste0("./analysis_rhapsody/MLfit_svmRadial_M0all_gt80_500genes_",i, ".rds")) #run on poseidon for mememory problems
+    ggsave(p, filename=paste0("./analysis_rhapsody_500genes/MLfit_svmRadial_",filename,"_",genesetname,"_",i, ".png"))
+    saveRDS(svm_Radial, paste0("./analysis_rhapsody_500genes/MLfit_svmRadial_",filename,"_",genesetname,"_",i, ".rds")) #run on poseidon for mememory problems
+    
+  }
+  
+  if (0){ # kNN-------------------------------------------------------------------
+    # my.dataframe = data.frame(cbind(label = colnames(data), macro@reductions$pca@cell.embeddings))
+    # set.seed(1)
+    # inTraining <- createDataPartition(my.dataframe$label, p = .3, list = FALSE)
+    # training <- my.dataframe[ inTraining,]
+    # testing  <- my.dataframe[-inTraining,]
+    ctrl <- trainControl(method="repeatedcv",repeats = 3) #,classProbs=TRUE,summaryFunction = twoClassSummary)
+    knnFit <- train(label ~ ., 
+                    data = training, 
+                    method = "knn", 
+                    trControl = ctrl, 
+                    # preProcess = c("center","scale"), 
+                    tuneLength = 20)
+    
+    #Output of kNN fit
+    knnFit
+    #Plotting yields Number of Neighbours Vs accuracy (based on repeated cross validation)
+    plot(knnFit)
+    knnPredict <- predict(knnFit,newdata = testing )
+    #Get the confusion matrix to see accuracy value and other parameter values
+    confusion = confusionMatrix(knnPredict, as.factor(testing$label) )
+    confusion.table = (confusion$table)
+    confusion.table = sweep(confusion.table, 2, colSums(confusion.table), FUN = '/')
+    p=pheatmap(confusion.table, cluster_rows = F, cluster_cols = F, 
+               # colorRampPalette(c("lightblue", "white", "red"))(50),
+               # gaps_col = c(5,10,15,20,25,30), gaps_row = c(5,10,15,20,25,30), 
+               breaks =  seq(0, 1, by = .01),
+               color = colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(length(seq(0, 1, by = .01) )),
+               display_numbers = T,fontsize_number = 14,main = paste0("knn_",filename,i)) 
+    # varImp = varImp(knnFit); varImp = varImp$importance
+    # saveRDS(knnFit, paste0("./analysis_rhapsody/MLfit_knn_M0all_gt80_500genes_",i, ".rds")) #run on poseidon for mememory problems
+    ggsave(p, filename=paste0("./analysis_rhapsody_500genes/MLfit_knn_",filename,"_",genesetname,"_",i, ".png"))
+    saveRDS(knnFit, paste0("./analysis_rhapsody_500genes/MLfit_knn_",filename,"_",genesetname,"_",i, ".rds")) #run on poseidon for mememory problems
+    
+  }
+  
+  if (0){ #naive bayes
+    library(e1071)
+    ctrl <- trainControl(method="repeatedcv",repeats = 3) #,classProbs=TRUE,summaryFunction = twoClassSummary)
+    nbFit <- train(label ~ ., 
+                   data = training, 
+                   method = "nb", 
+                   trControl = ctrl, 
+                   # preProcess = c("center","scale"),
+                   tuneLength = 20)
+    
+    #Output of nb fit
+    nbFit
+    #Plotting yields Number of Neighbours Vs accuracy (based on repeated cross validation)
+    plot(nbFit)
+    nbPredict <- predict(nbFit,newdata = testing )
+    #Get the confusion matrix to see accuracy value and other parameter values
+    confusion = confusionMatrix(nbPredict, as.factor(testing$label) )
+    confusion.table = (confusion$table)
+    confusion.table = sweep(confusion.table, 2, colSums(confusion.table), FUN = '/')
+    p=pheatmap(confusion.table, cluster_rows = F, cluster_cols = F, 
+               # colorRampPalette(c("lightblue", "white", "red"))(50),
+               # gaps_col = c(5,10,15,20,25,30), gaps_row = c(5,10,15,20,25,30), 
+               breaks =  seq(0, 1, by = .01),
+               color = colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(length(seq(0, 1, by = .01) )),
+               display_numbers = T, fontsize_number = 14,main = paste0("nb_",filename,i)) 
+    # varImp = varImp(nbFit); 
+    # varImp = varImp$importance
+    ggsave(p, filename=paste0("./analysis_rhapsody_500genes/MLfit_nb_",filename,"_",genesetname,"_",i, ".png"))
+    saveRDS(nbFit, paste0("./analysis_rhapsody_500genes/MLfit_nb_",filename,"_",genesetname,"_",i, ".rds")) #run on poseidon for mememory problems
+    
+  }
+}
+
+# Figure 6d----
+# test random sets of 15 genes -----
+store = data.frame()
+set.seed(1)
+for (i in c("3hr")){
+  
+  print(i)
+
+    macro = readRDS(paste0("./output/macrophage_M0all_500genes_Dec2020.rds"))
+
+  for (r in c(1:50)){
+    print(r)
+    genes = sample(rownames(macro[["ISnorm"]]@data), 15)
+    filename = "M0all.Dec2020"
+    genesetname = paste0("15genes.rnd",r) #"500genes" 
+    macro = subset(macro, subset= timept==i)
+    # macro = subset(macro, subset= stimulus!="CpG")
+    
+    # data = macro[["RNA"]]@data
+    data = macro[["ISnorm"]]@data
+    data = data.frame(data)
+    meta = macro@meta.data
+    colnames(data) = paste0(meta$stimulus, "_",meta$timept)
+    my.dataframe = cbind(label = colnames(data), data.frame(t(data)))
+    my.dataframe = my.dataframe[, colnames(my.dataframe) %in% c("label", genes)]
+    
+    #--------------------------------------ML using CARET-----------------------------------------
+    library(caret)
+    set.seed(1)
+    inTraining <- createDataPartition(my.dataframe$label, p = .7, list = FALSE)
+    training <- my.dataframe[ inTraining,]
+    testing  <- my.dataframe[-inTraining,]
+    
+    if (0) {#plsr --------------------------------------------------------------------------------
+      fitControl <- trainControl(method = "repeatedcv", repeats = 10, classProbs = T)
+      fit_pls <- train(label ~ .,  data = training,
+                       method = "pls",
+                       ## Center and scale the predictors for the training
+                       ## set and all future samples.
+                       # preProc = c("center", "scale"),
+                       tuneLength = 20,
+                       trControl = fitControl,
+                       metric = "ROC")
+      fit_pls
+      ggplot(fit_pls)
+      plsClasses <- predict(fit_pls, newdata = testing)
+      plsProbs <- predict(fit_pls, newdata = testing, type = "prob")
+      head(plsClasses)
+      head(plsProbs)
+      confusion = confusionMatrix(data = plsClasses, as.factor(testing$label))
+      confusion.table = (confusion$table)
+      confusion.table = sweep(confusion.table, 2, colSums(confusion.table), FUN = '/')
+      p=pheatmap(confusion.table, cluster_rows = F, cluster_cols = F, 
+                 # colorRampPalette(c("lightblue", "white", "red"))(50),
+                 # gaps_col = c(5,10,15,20,25,30), gaps_row = c(5,10,15,20,25,30), 
+                 breaks =  seq(0, 1, by = .01),
+                 color = colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(length(seq(0, 1, by = .01) )),
+                 display_numbers = T, fontsize_number = 14,main = paste0("pls_",filename,i)) 
+      # grid.text("Actual", y=-0.01, gp=gpar(fontsize=16))
+      # grid.text("Predicted", x=-0.02, rot=90, gp=gpar(fontsize=16))
+      
+      # varImp = varImp(fit_pls); varImp = varImp$importance
+      
+      # save the model to disk
+      ggsave(p, filename=paste0("./analysis_rhapsody_500genes/MLfit_pls_",filename,"_",genesetname,"_",i, ".png"))
+      saveRDS(fit_pls, paste0("./analysis_rhapsody_500genes/MLfit_pls_",filename,"_",genesetname,"_",i, ".rds"))
+    }
+    
+    if (1){ #random forest------------------------------------------------------------------------
+      print("running rf")
+      fitControl <- trainControl(method='repeatedcv', number=10, repeats=3)
+      metric <- "Accuracy" #Metric compare model is Accuracy
+      set.seed(1)
+      mtry <- sqrt(ncol(training) -1) #Number randomely variable selected is mtry
+      tunegrid <- expand.grid(.mtry=mtry)
+      fit_rf_default <- train(label~., 
+                              data=training, 
+                              method="rf", 
+                              metric='Accuracy', 
+                              tuneGrid=tunegrid, 
+                              trControl=fitControl)
+      
+      print(fit_rf_default)
+      rfClasses <- predict(fit_rf_default, newdata = testing)
+      confusion = confusionMatrix(data = rfClasses, as.factor(testing$label))
+      confusion.table = (confusion$table)
+      confusion.table = sweep(confusion.table, 2, colSums(confusion.table), FUN = '/')
+      values = as.data.frame(confusion$byClass)
+      
+      store = rbind(store, data.frame(time = i, genes = list(c(genes)), accuracy.train = fit_rf_default$results$Accuracy))
+      
+      p=pheatmap(confusion.table, cluster_rows = F, cluster_cols = F, 
+                 # colorRampPalette(c("lightblue", "white", "red"))(50),
+                 # gaps_col = c(5,10,15,20,25,30), gaps_row = c(5,10,15,20,25,30), 
+                 breaks =  seq(0, 1, by = .01),
+                 color = colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(length(seq(0, 1, by = .01) )),
+                 display_numbers = T,fontsize_number = 14,main = paste0("rf_",filename,i))
+      rf_prob=predict(fit_rf_default, newdata = testing, type = "prob")
+      # varImp = varImp(fit_rf_default); 
+      # varImp = data.frame(varImp$importance)
+      
+      
+      # ggplot(varImp, aes(x=reorder(varnames, IncNodePurity), y=IncNodePurity, color=as.factor(var_categ))) + 
+      #   geom_point() +
+      #   geom_segment(aes(x=varnames,xend=varnames,y=0,yend=IncNodePurity)) +
+      #   scale_color_discrete(name="Variable Group") +
+      #   ylab("IncNodePurity") +
+      #   xlab("Variable Name") +
+      #   coord_flip()
+      # plot(varImp, top = 20)
+      ggsave(p, filename=paste0("./analysis_rhapsody_15rndgenes/MLfit_rf_",filename,"_",genesetname,"_",i, ".png"))
+      saveRDS(fit_rf_default, paste0("./analysis_rhapsody_15rndgenes/MLfit_rf_",filename,"_",genesetname,"_",i, ".rds")) #on poseidon then moved back
+    }
+    
+    if (0){ # SVM -------------------------------------------------------------------
+      
+      trctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+      set.seed(1)
+      
+      svm_Linear <- train(label ~., data = training, 
+                          method = "svmLinear",
+                          trControl=trctrl,
+                          # preProcess = c("center", "scale"),
+                          tuneLength = 10)
+      
+      svm_Linear
+      test_pred <- predict(svm_Linear, newdata = testing)
+      test_pred
+      confusion = confusionMatrix(test_pred, as.factor(testing$label) )
+      confusion.table = (confusion$table)
+      confusion.table = sweep(confusion.table, 2, colSums(confusion.table), FUN = '/')
+      p=pheatmap(confusion.table, cluster_rows = F, cluster_cols = F, 
+                 # colorRampPalette(c("lightblue", "white", "red"))(50),
+                 # gaps_col = c(5,10,15,20,25,30), gaps_row = c(5,10,15,20,25,30), 
+                 breaks =  seq(0, 1, by = .01),
+                 color = colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(length(seq(0, 1, by = .01) )),
+                 display_numbers = T,fontsize_number = 14,main = paste0("svmL_",filename,i)) 
+      # varImp = varImp(svm_Linear); #varImp = varImp$importance
+      # plot(varImp, top = 20)
+      ggsave(p,filename=paste0("./analysis_rhapsody_500genes/MLfit_svmLinear_",filename,"_",genesetname,"_",i, ".png"))
+      saveRDS(svm_Linear, paste0("./analysis_rhapsody_500genes/MLfit_svmLinear_",filename,"_",genesetname,"_",i, ".rds")) #run on poseidon for mememory problems
+      
+    }
+    
+    if (0){ # SVM radial -------------------------------------------------------------------
+      
+      trctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+      set.seed(1)
+      
+      svm_Radial <- train(label ~., data = training,
+                          method = "svmRadial",
+                          trControl = trctrl,
+                          # preProcess = c("center","scale"),
+                          tuneLength = 10)
+      
+      # Print the best tuning parameter sigma and C that maximizes model accuracy
+      svm_Radial$bestTune
+      
+      svm_Radial
+      test_pred <- predict(svm_Radial, newdata = testing)
+      test_pred
+      confusion = confusionMatrix(test_pred, as.factor(testing$label) )
+      confusion.table = (confusion$table)
+      confusion.table = sweep(confusion.table, 2, colSums(confusion.table), FUN = '/')
+      p=pheatmap(confusion.table, cluster_rows = F, cluster_cols = F, 
+                 # colorRampPalette(c("lightblue", "white", "red"))(50),
+                 # gaps_col = c(5,10,15,20,25,30), gaps_row = c(5,10,15,20,25,30), 
+                 breaks =  seq(0, 1, by = .01),
+                 color = colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(length(seq(0, 1, by = .01) )),
+                 display_numbers = T,fontsize_number = 14,main = paste0("svmR_",filename,i)) 
+      # varImp = varImp(svm_Radial); #varImp = varImp$importance
+      # plot(varImp, top = 20)
+      # saveRDS(svm_Radial, paste0("./analysis_rhapsody/MLfit_svmRadial_M0all_gt80_500genes_",i, ".rds")) #run on poseidon for mememory problems
+      ggsave(p, filename=paste0("./analysis_rhapsody_500genes/MLfit_svmRadial_",filename,"_",genesetname,"_",i, ".png"))
+      saveRDS(svm_Radial, paste0("./analysis_rhapsody_500genes/MLfit_svmRadial_",filename,"_",genesetname,"_",i, ".rds")) #run on poseidon for mememory problems
+      
+    }
+    
+    if (0){ # kNN-------------------------------------------------------------------
+      # my.dataframe = data.frame(cbind(label = colnames(data), macro@reductions$pca@cell.embeddings))
+      # set.seed(1)
+      # inTraining <- createDataPartition(my.dataframe$label, p = .3, list = FALSE)
+      # training <- my.dataframe[ inTraining,]
+      # testing  <- my.dataframe[-inTraining,]
+      ctrl <- trainControl(method="repeatedcv",repeats = 3) #,classProbs=TRUE,summaryFunction = twoClassSummary)
+      knnFit <- train(label ~ ., 
+                      data = training, 
+                      method = "knn", 
+                      trControl = ctrl, 
+                      # preProcess = c("center","scale"), 
+                      tuneLength = 20)
+      
+      #Output of kNN fit
+      knnFit
+      #Plotting yields Number of Neighbours Vs accuracy (based on repeated cross validation)
+      plot(knnFit)
+      knnPredict <- predict(knnFit,newdata = testing )
+      #Get the confusion matrix to see accuracy value and other parameter values
+      confusion = confusionMatrix(knnPredict, as.factor(testing$label) )
+      confusion.table = (confusion$table)
+      confusion.table = sweep(confusion.table, 2, colSums(confusion.table), FUN = '/')
+      p=pheatmap(confusion.table, cluster_rows = F, cluster_cols = F, 
+                 # colorRampPalette(c("lightblue", "white", "red"))(50),
+                 # gaps_col = c(5,10,15,20,25,30), gaps_row = c(5,10,15,20,25,30), 
+                 breaks =  seq(0, 1, by = .01),
+                 color = colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(length(seq(0, 1, by = .01) )),
+                 display_numbers = T,fontsize_number = 14,main = paste0("knn_",filename,i)) 
+      # varImp = varImp(knnFit); varImp = varImp$importance
+      # saveRDS(knnFit, paste0("./analysis_rhapsody/MLfit_knn_M0all_gt80_500genes_",i, ".rds")) #run on poseidon for mememory problems
+      ggsave(p, filename=paste0("./analysis_rhapsody_500genes/MLfit_knn_",filename,"_",genesetname,"_",i, ".png"))
+      saveRDS(knnFit, paste0("./analysis_rhapsody_500genes/MLfit_knn_",filename,"_",genesetname,"_",i, ".rds")) #run on poseidon for mememory problems
+      
+    }
+    
+    if (0){ #naive bayes
+      library(e1071)
+      ctrl <- trainControl(method="repeatedcv",repeats = 3) #,classProbs=TRUE,summaryFunction = twoClassSummary)
+      nbFit <- train(label ~ ., 
+                     data = training, 
+                     method = "nb", 
+                     trControl = ctrl, 
+                     # preProcess = c("center","scale"),
+                     tuneLength = 20)
+      
+      #Output of nb fit
+      nbFit
+      #Plotting yields Number of Neighbours Vs accuracy (based on repeated cross validation)
+      plot(nbFit)
+      nbPredict <- predict(nbFit,newdata = testing )
+      #Get the confusion matrix to see accuracy value and other parameter values
+      confusion = confusionMatrix(nbPredict, as.factor(testing$label) )
+      confusion.table = (confusion$table)
+      confusion.table = sweep(confusion.table, 2, colSums(confusion.table), FUN = '/')
+      p=pheatmap(confusion.table, cluster_rows = F, cluster_cols = F, 
+                 # colorRampPalette(c("lightblue", "white", "red"))(50),
+                 # gaps_col = c(5,10,15,20,25,30), gaps_row = c(5,10,15,20,25,30), 
+                 breaks =  seq(0, 1, by = .01),
+                 color = colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(length(seq(0, 1, by = .01) )),
+                 display_numbers = T, fontsize_number = 14,main = paste0("nb_",filename,i)) 
+      # varImp = varImp(nbFit); 
+      # varImp = varImp$importance
+      ggsave(p, filename=paste0("./analysis_rhapsody_500genes/MLfit_nb_",filename,"_",genesetname,"_",i, ".png"))
+      saveRDS(nbFit, paste0("./analysis_rhapsody_500genes/MLfit_nb_",filename,"_",genesetname,"_",i, ".rds")) #run on poseidon for mememory problems
+      
+    }
+  }
+}
+ggplot(store[grepl("", store$time),], aes(x=accuracy.train, color=time, fill=time)) +
+  geom_density(alpha=0.2)+  theme_bw(base_size = 20)+xlim(0,1)
+
+# Figure 6e----
+# plot FDR and FPR----
+#collect FPR and FDR for each stimulus from rnd15
+table = data.frame()
+macro.all = readRDS(paste0("./output/macrophage_M0all_500genes_Dec2020.rds"))
+set.seed(1)
+for (i in c("3hr") ){
+  print(i)
+  for (r in c(1:50)){
+    print(r)
+    filename = "M0all.Dec2020"
+    genesetname = paste0("15genes.rnd",r)
+    
+    fit_rf_default = readRDS(paste0("./analysis_rhapsody_15rndgenes/MLfit_rf_",filename,"_",genesetname,"_",i, ".rds"))
+    macro = subset(macro.all, subset= timept==i)
+    data = macro[["ISnorm"]]@data
+    data = data.frame(data)
+    meta = macro@meta.data
+    colnames(data) = paste0(meta$stimulus, "_",meta$timept)
+    my.dataframe = cbind(label = colnames(data), data.frame(t(data)))
+    
+    library(caret)
+    set.seed(1)
+    inTraining <- createDataPartition(my.dataframe$label, p = .7, list = FALSE)
+    training <- my.dataframe[ inTraining,]
+    testing  <- my.dataframe[-inTraining,]
+    
+    print(fit_rf_default)
+    rfClasses <- predict(fit_rf_default, newdata = testing)
+    confusion = confusionMatrix(data = rfClasses, as.factor(testing$label))
+    confusion.table = (confusion$table)
+    values = as.data.frame(confusion$byClass)
+    values$rnd = r
+    table = rbind(table, values)
+    
+  }
+}
+table$fpr = 1-table$Specificity
+table$fdr = 1-table$Precision
+table$stim = c(
+  rep(c("CpG","IFNb", "LPS",  "P3C", "PIC", "TNF"), 50))
+table[is.na(table)] <-0
+
+table.m = melt(table[,c(13:15)])
+ggplot(table.m[grepl("fdr", table.m$variable),], aes(x=value, color=stim, fill=stim)) +
+  geom_density(alpha=0.2)+  theme_bw(base_size = 20)+xlim(0,1)+
+  geom_vline(xintercept = 0.1949, color = "#F8766D", linetype="dashed", size=1)+
+  geom_vline(xintercept = 0.0013, color = "#B79F00", linetype="dashed", size=1)+
+  geom_vline(xintercept = 0.1499, color = "#00BA38", linetype="dashed", size=1)+
+  geom_vline(xintercept = 0.2513, color = "#00BFC4", linetype="dashed", size=1)+
+  geom_vline(xintercept = 0.1598, color = "#619CFF", linetype="dashed", size=1)+
+  geom_vline(xintercept = 0.0972, color = "#F564E3", linetype="dashed", size=1)
+
+ggplot(table.m[grepl("fdr", table.m$variable),], aes(x= stim, y=value, color=stim, fill=stim)) +
+  geom_violin(alpha=0.2)+theme_bw(base_size = 20)+ theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
+  geom_point(aes(color = stim), position = position_jitter(w = 0.05, h = 0))+
+  geom_hline(yintercept = 0.1949, color = "#F8766D", linetype="dashed", size=1)+
+  geom_hline(yintercept = 0.0013, color = "#B79F00", linetype="dashed", size=1)+
+  geom_hline(yintercept = 0.1499, color = "#00BA38", linetype="dashed", size=1)+
+  geom_hline(yintercept = 0.2513, color = "#00BFC4", linetype="dashed", size=1)+
+  geom_hline(yintercept = 0.1598, color = "#619CFF", linetype="dashed", size=1)+
+  geom_hline(yintercept = 0.0972, color = "#F564E3", linetype="dashed", size=1)
+# geom_hline(yintercept = 0.24, color = "#F8766D", linetype="dashed", size=1)+
+# geom_hline(yintercept = 0.01, color = "#B79F00", linetype="dashed", size=1)+
+# geom_hline(yintercept = 0.18, color = "#00BA38", linetype="dashed", size=1)+
+# geom_hline(yintercept = 0.22, color = "#00BFC4", linetype="dashed", size=1)+
+# geom_hline(yintercept = 0.19, color = "#619CFF", linetype="dashed", size=1)+
+# geom_hline(yintercept = 0.07, color = "#F564E3", linetype="dashed", size=1)
+
+
 ###################################Figure 7
-# Figure 7b----
-# Figure 7c----
 
 
+# Figure 6f----
+samptag.all = read.delim("./output/samptag.all_cellannotations_metadata.txt")
+samptag.all$Cell_Index = paste0("X", samptag.all$Cell_Index)
+
+mutual = readRDS("./infotheo/collect_dimensionbest_ISnorm_Feb2021.rds")
+genes = unlist(mutual[41,4])
+macro = readRDS(paste0("./output/macrophage_M0_rep2only_500genes_DBEC.rds"))
+macro = subset(macro, subset= timept =="3hr")
+
+
+collect = data.frame()
+for (i in c("M0","M1_IFNg","M2_IL4")){
+  print(i)
+  for (s in c(
+    "LPS|PIC|IFNb|TNF|P3CSK|CpG", "LPS|P3CSK|CpG",
+    "LPS|PIC|IFNb|TNF|P3CSK", "LPS|P3CSK|PIC","LPS|PIC|TNF", "LPS|PIC|IFNb", "IFNb|TNF", "PIC|TNF", "LPS|P3CSK")){
+    print(s)
+    meta = na.omit(samptag.all)
+    wanted = (meta$Cell_Index[meta$type==i])
+    
+    data = macro[["ISnorm"]]@data
+    data = data.frame(data)
+    meta = macro@meta.data
+    colnames(data) = meta$stimulus
+ 
+    my.dataframe = cbind(label = colnames(data), data.frame(t(data)))
+       
+    my.dataframe = my.dataframe[, colnames(my.dataframe) %in% c("label", genes)]
+    str(my.dataframe)
+    
+    
+    my.dataframe=my.dataframe[grepl(s, my.dataframe$label),]
+    #--------------------------------mi using SLEMI -----------------------
+    
+    #calc information capacity: capacity_logreg_main(dataRaw, signal, response, output_path)
+    output_capacity <- capacity_logreg_main(my.dataframe, signal = "label", response = colnames(my.dataframe)[-1],
+                                            # paste0("F:/scRNAseq_macro/scRNAseq_macro/infotheo/cc_", i), 
+                                            testing = T, boot_num = 50, boot_prob = .5 ,testing_cores = 4) #without0hr
+    sd = sd(sapply(output_capacity$testing$bootstrap, '[[', 3)) #get cc from each bootstrap
+    tmp = data.frame(type = i, stim_cells = s, cc = output_capacity$cc, sd = sd)
+    collect = rbind(collect, tmp)
+    
+    # tempoutput_probs  <- prob_discr_pairwise(my.dataframe, signal = "label", response = colnames(my.dataframe)[-1],
+    #                                          output_path=paste0("F:/scRNAseq_macro/scRNAseq_macro/infotheo/cc_pairwiseProb_", i)) 
+  }
+}
+
+collect$type = factor(collect$type, levels= c("M0","M1_IFNg","M2_IL4" ))
+collect$stim_cells = factor(collect$stim_cells, levels= c("LPS|PIC|IFNb|TNF|P3CSK", # "LPS|P3CSK","LPS|P3CSK|PIC",
+                                                          "LPS|PIC|TNF", "LPS|PIC|IFNb", "IFNb|TNF", "PIC|TNF"))
+ggplot(na.omit(collect), aes(stim_cells, cc, fill = type))+geom_bar(stat="identity", position="dodge")+theme_bw(base_size = 16)+ylab("channel capacity")+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
+  geom_errorbar(aes(ymin=cc-sd, ymax=cc+sd), width=.5,position=position_dodge(1))+
+  scale_fill_manual(values=colors_list)
+
+# Figure 6g----
+#calculate MI on PC scores----
+samptag.all = read.delim("./output/samptag.all_cellannotations_metadata.txt")
+samptag.all$Cell_Index = paste0("X", samptag.all$Cell_Index)
+
+pc.scores = read.delim("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr_prcomp_scores.txt")
+colnames(pc.scores)[1]="Sample"
+pc.scores$stimulus = samptag.all$stimulus[match(pc.scores$Sample, samptag.all$Cell_Index)]
+pc.scores$type = samptag.all$type[match(pc.scores$Sample, samptag.all$Cell_Index)]
+projected.data = read.delim("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr_2M03hrs_prcomp_rotated.txt")
+projected.data$stimulus = samptag.all$stimulus[match(projected.data$Sample, samptag.all$Cell_Index)]
+projected.data$type = samptag.all$type[match(projected.data$Sample, samptag.all$Cell_Index)]
+
+mi.frame = rbind(pc.scores, projected.data)
+# mi.frame = projected.data
+rownames(mi.frame)= mi.frame$Sample
+mi.frame$Sample = mi.frame$stimulus
+colnames(mi.frame)[1]="label"
+# mi.frame$label = factor(mi.frame$label, levels=c("PIC","P3CSK","LPS","IFNb","TNF"))
+
+
+collect = data.frame()
+nPCs = 3
+for (i in c("M0","M1_IFNg","M2_IL4")){
+  print(i)
+  for (s in c(
+    "LPS|PIC|IFNb|TNF|P3CSK|CpG", "LPS|P3CSK|CpG",
+    "LPS|PIC|IFNb|TNF|P3CSK", "LPS|P3CSK|PIC","LPS|PIC|TNF", "LPS|PIC|IFNb", "IFNb|TNF", "PIC|TNF", "LPS|P3CSK")){
+    # for (s in c("PIC|TNF")){
+    print(s)
+    meta = na.omit(samptag.all)
+    wanted = (meta$Cell_Index[meta$type==i])
+    my.dataframe= mi.frame[rownames(mi.frame)%in%wanted, c(1:(nPCs+1))]
+    
+    my.dataframe=my.dataframe[grepl(s, my.dataframe$label),]
+    #--------------------------------mi using SLEMI -----------------------
+    
+    #calc information capacity: capacity_logreg_main(dataRaw, signal, response, output_path)
+    output_capacity <- capacity_logreg_main(my.dataframe, signal = "label", response = colnames(my.dataframe)[-1],
+                                            # paste0("F:/scRNAseq_macro/scRNAseq_macro/infotheo/cc_", i), 
+                                            testing = T, boot_num = 50, boot_prob = .5 ,testing_cores = 4) #without0hr
+    sd = sd(sapply(output_capacity$testing$bootstrap, '[[', 3)) #get cc from each bootstrap
+    tmp = data.frame(type = i, stim_cells = s, cc = output_capacity$cc, sd = sd)
+    collect = rbind(collect, tmp)
+    
+    # tempoutput_probs  <- prob_discr_pairwise(my.dataframe, signal = "label", response = colnames(my.dataframe)[-1],
+    #                                          output_path=paste0("F:/scRNAseq_macro/scRNAseq_macro/infotheo/cc_pairwiseProb_", i)) 
+  }
+}
+
+collect$type = factor(collect$type, levels= c("M0","M1_IFNg","M2_IL4","PM_B6.LFD","PM_B6.old","PM_B6.HFD" ))
+colors_list = (c(M0="gray",M1_IFNg="gray",M2_IL4="gray",PM_B6.LFD="#F8766D",PM_B6.old="#00BA38",PM_B6.HFD="#619CFF"))
+ggplot(collect, aes(type, cc, fill = type))+geom_bar(stat="identity", position="dodge")+theme_bw(base_size = 16)+ylab("channel capacity")+
+  geom_errorbar(aes(ymin=cc-sd, ymax=cc+sd), width=.5,position=position_dodge(1))+
+  facet_grid(~stim_cells)+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
+  scale_fill_manual(values=colors_list)
+# write.table(collect, "./infotheo/collect_diseasemodel_bootstrap.txt", sep="\t",quote = F, row.names = F)
+# write.table(collect, "./infotheo/collect_Polarization_BMDMdiseasemodel_bootstrap.txt", sep="\t",quote = F, row.names = F)
+
+collect = read.delim("./infotheo/collect_diseasemodel_bootstrap.txt")
+collect$type = factor(collect$type, levels= c("M0","M1_IFNg","M2_IL4","PM_B6.LFD","PM_B6.old","PM_B6.HFD" ))
+collect$stim_cells = factor(collect$stim_cells, levels= c("LPS|PIC|IFNb|TNF|P3CSK", # "LPS|P3CSK","LPS|P3CSK|PIC",
+                                                          "LPS|PIC|TNF", "LPS|PIC|IFNb", "IFNb|TNF", "PIC|TNF"))
+ggplot(na.omit(collect), aes(stim_cells, cc, fill = type))+geom_bar(stat="identity", position="dodge")+theme_bw(base_size = 16)+ylab("channel capacity")+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
+  geom_errorbar(aes(ymin=cc-sd, ymax=cc+sd), width=.5,position=position_dodge(1))+
+  scale_fill_manual(values=colors_list)
+
+
+#plot just the M0/M1/M2 bars------------------
+collect = read.delim("./infotheo/collect_Polarization_BMDMdiseasemodel_bootstrap.txt")
+collect$type = factor(collect$type, levels= c("M0","M1_IFNg","M2_IL4"))
+collect$stim_cells = factor(collect$stim_cells, levels= c("LPS|PIC|IFNb|TNF|P3CSK|CpG", "LPS|P3CSK|CpG",#"LPS|P3CSK",
+                                                          "LPS|PIC|TNF", "LPS|PIC|IFNb", "IFNb|TNF", "PIC|TNF"))
+colors_list = (c(M0="#F8766D",M1_IFNg="#00BA38",M2_IL4="#619CFF"))
+ggplot(na.omit(collect[grepl("M0|M1|M2", collect$type),]), aes(stim_cells, cc, fill = type))+
+  geom_bar(stat="identity", position ="dodge")+theme_bw(base_size = 16)+ylab("channel capacity")+
+  geom_errorbar(aes(ymin=cc-sd, ymax=cc+sd), width=.5,position=position_dodge(1))+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
+  scale_fill_manual(values=colors_list)+
+  geom_hline(yintercept = 1, linetype="dotted")+
+  # geom_hline(yintercept = log(3)/log(2), linetype="dotted")+
+  geom_hline(yintercept = 2, linetype="dotted")
+
+
+######################################## Figure 7----
 # Figure 7d ----
 # plot disease channel capacity differences--------
 collect_all = read.delim("./infotheo/SLEMI_singlegene_collectall_PMs_Feb2021_gt120_5stim_ISnorm_500genes.txt")
@@ -1739,8 +2870,8 @@ pheatmap(collect_distances.mat,
 intersect_doPCA_from_file_and_project_second_dataset("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr.txt",
                                                      "./output/macrophage_PMexpts_Feb2021_rmUnstim_500genes_DBEC.txt", train_string = "2M0M1M23hrs",
                                                      center = T, scale = F)
-varimax_from_file("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr_prcomp_scores.txt",
-                  "./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr_prcomp_loadings.txt",comp = 3, normalize = F)
+# varimax_from_file("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr_prcomp_scores.txt",
+#                   "./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr_prcomp_loadings.txt",comp = 3, normalize = F)
 
 # debug(plot_pca)
 plot_pca("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr_prcomp_scores.txt", samptag.all$Cell_Index, samptag.all$type, pt.size = 0.1,ellipse = F, labels = F)
@@ -1783,10 +2914,7 @@ colnames(pc.scores)[1]="Sample"
 pc.scores$stimulus = samptag.all$stimulus[match(pc.scores$Sample, samptag.all$Cell_Index)]
 pc.scores$type = samptag.all$type[match(pc.scores$Sample, samptag.all$Cell_Index)]
 projected.data = read.delim("./output/macrophage_PMexpts_Feb2021_rmUnstim_500genes_DBEC_2M0M1M23hrs_prcomp_rotated.txt")
-projected.data = read.delim("./output/macrophage_BMDM2_WT_MM_500genes_DBEC_2M0M1M23hrs_prcomp_rotated.txt")
-projected.data = read.delim("./output/macrophage_PM_500genes_Dec2020_DBEC_2M0M1M28hrs_prcomp_rotated.txt")
-projected.data = read.delim("./output/macrophage_BMDM_B6.WT_NOD.AireGW_healthy_500genes_DBEC_filtered_2M0M1M28hrs_prcomp_rotated.txt")
-projected.data = read.delim("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr_2M03hrs_prcomp_rotated.txt")
+# projected.data = read.delim("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr_2M03hrs_prcomp_rotated.txt")
 projected.data$stimulus = samptag.all$stimulus[match(projected.data$Sample, samptag.all$Cell_Index)]
 projected.data$type = samptag.all$type[match(projected.data$Sample, samptag.all$Cell_Index)]
 
