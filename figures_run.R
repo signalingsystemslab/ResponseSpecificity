@@ -2640,9 +2640,7 @@ samptag.all$Cell_Index = paste0("X", samptag.all$Cell_Index)
 
 mutual = readRDS("./infotheo/collect_dimensionbest_ISnorm_Feb2021.rds")
 genes = unlist(mutual[41,4])
-macro = readRDS(paste0("./output/macrophage_M0_rep2only_500genes_DBEC.rds"))
-macro = subset(macro, subset= timept =="3hr")
-
+macro = readRDS(paste0("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr.rds"))
 
 collect = data.frame()
 for (i in c("M0","M1_IFNg","M2_IL4")){
@@ -2656,13 +2654,13 @@ for (i in c("M0","M1_IFNg","M2_IL4")){
     
     data = macro[["ISnorm"]]@data
     data = data.frame(data)
-    meta = macro@meta.data
-    colnames(data) = meta$stimulus
- 
+    
     my.dataframe = cbind(label = colnames(data), data.frame(t(data)))
-       
-    my.dataframe = my.dataframe[, colnames(my.dataframe) %in% c("label", genes)]
-    str(my.dataframe)
+    my.dataframe = my.dataframe[rownames(my.dataframe)%in%wanted, colnames(my.dataframe) %in% c("label", genes)]
+    
+    
+    my.dataframe$label = meta$stimulus[match(rownames(my.dataframe), rownames(meta))]
+     str(my.dataframe)
     
     
     my.dataframe=my.dataframe[grepl(s, my.dataframe$label),]
@@ -2680,14 +2678,14 @@ for (i in c("M0","M1_IFNg","M2_IL4")){
     #                                          output_path=paste0("F:/scRNAseq_macro/scRNAseq_macro/infotheo/cc_pairwiseProb_", i)) 
   }
 }
+write.table(collect, "./infotheo/collect_polarization.top15genes_3hr_bootstrap.txt", sep="\t",quote = F, row.names = F)
 
 collect$type = factor(collect$type, levels= c("M0","M1_IFNg","M2_IL4" ))
-collect$stim_cells = factor(collect$stim_cells, levels= c("LPS|PIC|IFNb|TNF|P3CSK", # "LPS|P3CSK","LPS|P3CSK|PIC",
+collect$stim_cells = factor(collect$stim_cells, levels= c("LPS|PIC|IFNb|TNF|P3CSK|CpG", "LPS|P3CSK|CpG",#"LPS|P3CSK",
                                                           "LPS|PIC|TNF", "LPS|PIC|IFNb", "IFNb|TNF", "PIC|TNF"))
 ggplot(na.omit(collect), aes(stim_cells, cc, fill = type))+geom_bar(stat="identity", position="dodge")+theme_bw(base_size = 16)+ylab("channel capacity")+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
-  geom_errorbar(aes(ymin=cc-sd, ymax=cc+sd), width=.5,position=position_dodge(1))+
-  scale_fill_manual(values=colors_list)
+  geom_errorbar(aes(ymin=cc-sd, ymax=cc+sd), width=.5,position=position_dodge(1))
 
 # Figure 6g----
 #calculate MI on PC scores----
