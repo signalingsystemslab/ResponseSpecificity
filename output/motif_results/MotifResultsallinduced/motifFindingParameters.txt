@@ -1,0 +1,1 @@
+cmd = heatmap_cheng2017_allinduced.txt mouse /mnt/f/scRNAseq_macro/bulk_rnaseq/motif_results/MotifResultsallinduced/ -start -1000 -end 100 -len 8,10 -p 4

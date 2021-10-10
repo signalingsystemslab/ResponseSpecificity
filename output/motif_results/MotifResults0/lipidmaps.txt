@@ -1,0 +1,15 @@
+TermID	Term	Enrichment	logP	Genes in Term	Target Genes in Term	Fraction of Targets in Term	Total Target Genes	Total Genes	Entrez Gene IDs	Gene Symbols
+TLR4	TLR4 (Toll-like receptor 4) signaling pathway	4.13357866106417e-11	-23.9092924872697	67	22	0.628571428571429	35	416	12475,21929,16175,18034,18035,18033,21926,15894,54123,16193,22329,16176,16476,18126,14281,15962,18037,20304,19225,20303,15977,20302	Cd14,Tnfaip3,Il1a,Nfkb2,Nfkbia,Nfkb1,Tnf,Icam1,Irf7,Il6,Vcam1,Il1b,Jun,Nos2,Fos,Ifna1,Nfkbie,Ccl5,Ptgs2,Ccl4,Ifnb1,Ccl3
+SP	Sphingolipids metabolism pathway	0.132358660964085	-2.0222399126006	24	4	0.114285714285714	35	416	19012,70059,67916,20698	Plpp1,Degs2,Plpp3,Sphk1
+FAEicosanoids	Arachidonic acid metabolism pathway	0.170413073149982	-1.76952994716604	9	2	0.0571428571428571	35	416	64292,19225	Ptges,Ptgs2
+PI3K	PI3K/Akt/mTOR signaling pathway	0.222652207026678	-1.50214433472514	92	10	0.285714285714286	35	416	16193,18037,12443,18033,22341,21926,18035,16175,18034,16176	Il6,Nfkbie,Ccnd1,Nfkb1,Vegfc,Tnf,Nfkbia,Il1a,Nfkb2,Il1b
+Apoptosis	Apoptosis signaling pathway	0.269267930579533	-1.3120483706243	74	8	0.228571428571429	35	416	18035,21926,18033,22035,11920,16175,18034,18037	Nfkbia,Tnf,Nfkb1,Tnfsf10,Atm,Il1a,Nfkb2,Nfkbie
+FAEicosanoidsCOX	Arachidonic acid metabolism via COX (Cyclooxygenase) pathway	0.487184312876095	-0.719112761635016	19	2	0.0571428571428571	35	416	64292,19225	Ptges,Ptgs2
+ST	Sterols biosynthesis pathway	0.5502384829748	-0.597403489326553	9	1	0.0285714285714286	35	416	12642	Ch25h
+GP	Glycerolipids/Glycerophospholipids metabolism pathway	0.818918196094063	-0.199771082786705	19	1	0.0285714285714286	35	416	19012	Plpp1
+CellCycle	Cell cycle signaling pathway	0.977794206436001	-0.0224560539563924	95	4	0.114285714285714	35	416	12443,11920,17869,12447	Ccnd1,Atm,Myc,Ccne1
+PPAR	PPAR (Peroxisome proliferator-activated receptor) signaling pathway	0.984873291983324	-0.0152422836649533	45	1	0.0285714285714286	35	416	108078	Olr1
+FAOmega9AndOthersUnsaturated	Omega-9 and other unsaturated fatty acids biosynthesis pathway	1.00000000000977	9.76558289558567e-12	14	0	0	35	416
+FAOmega3And6Unsaturated	Omega-3 and omega-6 unsaturated fatty acids biosynthesis pathway	1.00000000001116	1.11635261405117e-11	15	0	0	35	416
+FAEicosanoidsCYP	Arachidonic acid metabolism via CYP (Cytochromoe P450) pathway	1.00000000001116	1.11635261405117e-11	15	0	0	35	416
+FAEicosanoidsLOX	Arachidonic acid metabolism via LOX (Lipooxygenase) pathway	1.00000000001641	1.64101898989208e-11	20	0	0	35	416

@@ -1,0 +1,1 @@
+cmd = heatmap_cheng2017_all500genes.txt mouse /mnt/f/scRNAseq_macro/bulk_rnaseq/motif_results/MotifResults0/ -start -1000 -end 100 -len 8,10 -p 4
