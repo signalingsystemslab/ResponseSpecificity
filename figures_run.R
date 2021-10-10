@@ -398,7 +398,7 @@ library(RColorBrewer);library(ConsensusClusterPlus);library(Matrix);library(matr
 library(rTensor);library(reshape2);library(rgl);library(ggrepel);library(plot3D);library(plot3Drgl);library(gridExtra)
 library(patchwork);library(plot3D);library(plot3Drgl);library(pheatmap);library(grid);library(umap);library(ggthemes)
 library(ggpubr);library(ggridges);library(reshape2);library(Seurat);library(dplyr);library(ksheu.library1)
-library(SLEMI);library(ggplot2);library(ggrepel);library(ksheu.library1);library(Seurat);library(pheatmap)
+library(SLEMI);library(caret);library(ggplot2);library(ggrepel);library(ksheu.library1);library(Seurat);library(pheatmap)
 
 
 ###################################################### Figure1----
@@ -2091,7 +2091,7 @@ for (i in c("3hr")){
   data = data.frame(data)
   meta = macro@meta.data
   colnames(data) = paste0(meta$stimulus, "_",meta$timept)
-  # my.dataframe = cbind(label = colnames(data), data.frame(t(data)))
+  my.dataframe = cbind(label = colnames(data), data.frame(t(data)))
   my.dataframe = my.dataframe[, colnames(my.dataframe) %in% c("label", genes)]
   
   #--------------------------------------ML using CARET-----------------------------------------
@@ -2659,7 +2659,7 @@ for (i in c("M0","M1_IFNg","M2_IL4")){
     my.dataframe = my.dataframe[rownames(my.dataframe)%in%wanted, colnames(my.dataframe) %in% c("label", genes)]
     
     
-    my.dataframe$label = meta$stimulus[match(rownames(my.dataframe), rownames(meta))]
+    my.dataframe$label = meta$stimulus[match(rownames(my.dataframe), meta$Cell_Index)]
      str(my.dataframe)
     
     
