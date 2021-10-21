@@ -2681,7 +2681,7 @@ for (i in c("M0","M1_IFNg","M2_IL4")){
 write.table(collect, "./infotheo/collect_polarization.top15genes_3hr_bootstrap.txt", sep="\t",quote = F, row.names = F)
 
 collect$type = factor(collect$type, levels= c("M0","M1_IFNg","M2_IL4" ))
-collect$stim_cells = factor(collect$stim_cells, levels= c("LPS|PIC|IFNb|TNF|P3CSK|CpG", "LPS|P3CSK|CpG",#"LPS|P3CSK",
+collect$stim_cells = factor(collect$stim_cells, levels= c("LPS|PIC|IFNb|TNF|P3CSK|CpG", "LPS|P3CSK|CpG",
                                                           "LPS|PIC|TNF", "LPS|PIC|IFNb", "IFNb|TNF", "PIC|TNF"))
 ggplot(na.omit(collect), aes(stim_cells, cc, fill = type))+geom_bar(stat="identity", position="dodge")+theme_bw(base_size = 16)+ylab("channel capacity")+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
@@ -2749,7 +2749,7 @@ ggplot(collect, aes(type, cc, fill = type))+geom_bar(stat="identity", position="
 
 collect = read.delim("./infotheo/collect_diseasemodel_bootstrap.txt")
 collect$type = factor(collect$type, levels= c("M0","M1_IFNg","M2_IL4","PM_B6.LFD","PM_B6.old","PM_B6.HFD" ))
-collect$stim_cells = factor(collect$stim_cells, levels= c("LPS|PIC|IFNb|TNF|P3CSK", # "LPS|P3CSK","LPS|P3CSK|PIC",
+collect$stim_cells = factor(collect$stim_cells, levels= c("LPS|PIC|IFNb|TNF|P3CSK", 
                                                           "LPS|PIC|TNF", "LPS|PIC|IFNb", "IFNb|TNF", "PIC|TNF"))
 ggplot(na.omit(collect), aes(stim_cells, cc, fill = type))+geom_bar(stat="identity", position="dodge")+theme_bw(base_size = 16)+ylab("channel capacity")+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
