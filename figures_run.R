@@ -1183,7 +1183,128 @@ p=pheatmap(na.omit(dcast[(dcast[,4] > .7),4, drop=F]), scale = "none", clusterin
            cluster_cols = F, cluster_rows = T, show_rownames = T)
 row_order = as.character(na.omit(dcast$gene[(dcast[,4] > .7)])[p$tree_row$order])
 
-# Figure 3e----
+
+# Figure 3d----
+# mean vs variance contribution to channel capacity------
+if(1){
+  
+ if(1){
+    collect_all = read.delim("./infotheo/SLEMI_singlegene_collectall_M0_rep2only_ISnorm_500genes.txt")  #for all stim
+    mat.m0 = read.table("./output/macrophage_M0_rep2only_500genes_calculatedistfeatures.txt", header = T)
+    timept ="3"; i = ""
+    pseudobulk = read.delim("./output/macrophage_M0_rep2only_500genes_pseudobulk_MEAN.txt")
+    
+  }
+ 
+  mat.m0=mat.m0[grepl(i,mat.m0$stimulus),]
+  
+  mat.m0$gene.time = paste0(mat.m0$gene,"_", mat.m0$time,"hr")
+  mat.m0.agg=aggregate(mat.m0[grepl("",mat.m0$stimulus),], by = list(mat.m0$gene.time), FUN = function(x){(mean(x))}) #
+  mat.m0.agg$cc = collect_all$cc[match(mat.m0.agg$Group.1, paste0(collect_all$gene, "_",collect_all$time))]
+  mat.m0$dev2mean = mat.m0.agg$mean[match(paste0(mat.m0$gene,"_",mat.m0$time,"hr"), mat.m0.agg$Group.1)]
+  mat.m0$dev2mean = abs(mat.m0$mean-mat.m0$dev2mean)^2
+  
+  pseudobulk = pseudobulk[,grepl(paste0(timept,"hr"), colnames(pseudobulk))];
+  pseudobulk = pseudobulk[,grepl(i, colnames(pseudobulk))]
+  pseudobulk$diff = (pseudobulk[,1]-pseudobulk[,2])
+  mat.m0$diff = pseudobulk$diff[match(rownames(pseudobulk), mat.m0$gene)]
+  
+  mat.m0.agg=aggregate(mat.m0[grepl("",mat.m0$time),], by = list(paste0(mat.m0$gene,"_", mat.m0$time,"hr")), FUN = function(x){(mean(x))}) #
+  mat.m0.agg$cc = collect_all$cc[match(mat.m0.agg$Group.1, paste0(collect_all$gene, "_",collect_all$time))]
+
+  #########USE THIS
+  
+  mat.m0.agg.3hr= mat.m0.agg[grepl(timept,mat.m0.agg$time),]
+  rownames(mat.m0.agg.3hr)= gsub(paste0("_",timept,"hr"), "",mat.m0.agg.3hr$Group.1)
+ 
+  clusters = readxl::read_excel("F://scRNAseq_macro/scRNAseq_macro/fit_mean_modv3_p38input/reassign_genes_to_grns_unweightedcost_500genes_Jan2021_ks.xlsx")
+  mat.m0.agg.3hr$clusters = clusters$manual_fix[match(rownames(mat.m0.agg.3hr), clusters$gene)]
+  mat.m0.agg.3hr$clusters = gsub("mB","mC", mat.m0.agg.3hr$clusters)
+  mat.m0.agg.3hr$clusters = ifelse(mat.m0.agg.3hr$clusters=="mA","AP1",
+                                   ifelse(mat.m0.agg.3hr$clusters=="mC","NFkB",
+                                          ifelse(mat.m0.agg.3hr$clusters=="mD","NFkB&p38",
+                                                 ifelse(mat.m0.agg.3hr$clusters=="mE","NFkB|IRF","IRF")))) 
+  mat.m0.agg.3hr$clusters = factor(mat.m0.agg.3hr$clusters, level = c("AP1","NFkB","NFkB&p38","NFkB|IRF","IRF"))                                  
+  
+  if(1){
+    mat.m0.agg.3hr$gene = gsub("_3hr","",mat.m0.agg.3hr$Group.1)
+    mat.m0.agg.3hr$label = ifelse(grepl("Nfkbiz|Zc3h12a|Ifi205|Trim21|Cmpk2|Ccl5|Cxcl10|Socs3|Saa3|Tnf$|Il1a|Il1b|Il6|Ifit3$|Tnfaip3", rownames(mat.m0.agg.3hr)), rownames(mat.m0.agg.3hr),"")
+    mat.m0.agg.3hr$label = ifelse(mat.m0.agg.3hr$cc>0.4, rownames(mat.m0.agg.3hr),
+                                  ifelse(mat.m0.agg.3hr$dev2mean>0.75, rownames(mat.m0.agg.3hr),""))
+    p1=ggplot(mat.m0.agg.3hr, aes((fano),(cc)))+ #aes(log2(dev2mean),log2(fano)))+
+      geom_point(aes( fill=dev2mean), size =4,shape=21)+
+      scale_fill_gradient(low="lightblue", high="red")+ggtitle(i)+
+      # facet_wrap(~time, ncol=4)+
+      geom_text_repel(      mapping = aes(label = label),                          
+                            # data = mat.m0.agg.3hr[grepl("Tnf$|Il1a|Il1b|Il6|Ifit3$|Mx1|Mx2|Oasl1|Il10|Tnfaip3|Gsr|Bcl2a1a|Bcl2ald|Bcl2l11", rownames(mat.m0.agg.3hr)) |(log2(mat.m0.agg.3hr$fano)<(-2)) , ] ,
+                            # aes(label = c(rownames(mat.m0.agg.3hr[grepl("Tnf$|Il1a|Il1b|Il6|Ifit3$|Mx1|Mx2|Oasl1|Il10|Tnfaip3|Gsr|Bcl2a1a|Bcl2ald|Bcl2l11", rownames(mat.m0.agg.3hr) ),] ), rownames(mat.m0.agg.3hr[log2(mat.m0.agg.3hr$fano)<(-2),]) )),
+                            box.padding = .5 ,size = 5 ) +
+      geom_smooth(method = "lm", se=F)+stat_cor(label.y = 1.5,label.x =1, method = "pearson", p.digits = 0)+theme_bw(base_size = 14)+
+      ylab("channel capacity")+xlab("avg. Fano factor")+ylim(0,1.6)
+    p2=ggplot(mat.m0.agg.3hr, aes((dev2mean),(cc)))+ #aes(log2(dev2mean),log2(fano)))+
+      geom_point(aes( fill=fano), size =4,shape=21)+
+      scale_fill_gradient(low="lightblue", high="red")+ggtitle(i)+
+      # facet_wrap(~time, ncol=4)+
+      geom_text_repel(      mapping = aes(label = label),
+                            
+                            # data = mat.m0.agg.3hr[grepl("Ifi205|Trim21|Cmpk2|Ccl5|Cxcl10|Socs3|Saa3|Tnf$|Il1a|Il1b|Il6|Ifit3$|Tnfaip3", rownames(mat.m0.agg.3hr)) , ] ,
+                            # mapping=aes(label = c(rownames(mat.m0.agg.3hr[grepl("Ifi205|Trim21|Cmpk2|Ccl5|Cxcl10|Socs3|Saa3|Tnf$|Il1a|Il1b|Il6|Ifit3$|Tnfaip3", rownames(mat.m0.agg.3hr) ),] ) )),
+                            box.padding = .5 ,size = 5 ) +
+      geom_smooth(method = "lm", se=F)+stat_cor(label.y = 1.5,label.x =0, method = "pearson", p.digits = 0)+theme_bw(base_size = 14)+
+      ylab("channel capacity")+xlab("mean squared deviation (MSD)")+ylim(0,1.6)
+    print(p1/p2)
+    
+
+  }
+  
+  ggplot(mat.m0.agg.3hr, aes(log2(dev2mean),(fano)))+ #aes(log2(dev2mean),log2(fano)))+
+    geom_point(aes( fill=cc), size =4,shape=21)+
+    scale_fill_gradient(low="lightblue", high="red")+ggtitle(i)+
+    # facet_wrap(~time, ncol=4)+
+    geom_text_repel(      mapping = aes(label = label),
+                          
+                          # data = mat.m0.agg.3hr[grepl("Ifi205|Trim21|Cmpk2|Ccl5|Cxcl10|Socs3|Saa3|Tnf$|Il1a|Il1b|Il6|Ifit3$|Tnfaip3", rownames(mat.m0.agg.3hr)) , ] ,
+                          # mapping=aes(label = c(rownames(mat.m0.agg.3hr[grepl("Ifi205|Trim21|Cmpk2|Ccl5|Cxcl10|Socs3|Saa3|Tnf$|Il1a|Il1b|Il6|Ifit3$|Tnfaip3", rownames(mat.m0.agg.3hr) ),] ) )),
+                          box.padding = .5 ,size = 5 ) +
+    geom_smooth(method = "lm", se=F)+stat_cor(label.y = 1.5,label.x =0, method = "pearson", p.digits = 0)+theme_bw(base_size = 14)+
+    ylab("avg. Fano factor")+xlab("mean squared deviation (MSD)")+ylim(0,1.6)
+  
+
+} 
+
+# Figure 3e new----
+genetype =  readxl::read_excel("F://scRNAseq_macro/scRNAseq_macro/fit_mean_modv3_p38input/reassign_genes_to_grns_unweightedcost_500genes_Dec2021_ks.xlsx")
+mat.m0.agg.3hr$genetype = genetype$genetype[match(mat.m0.agg.3hr$Group.1, paste0(genetype$gene, "_3hr"))]
+mat.m0.agg.3hr$gene = gsub("_3hr","",mat.m0.agg.3hr$Group.1)
+mat.m0.agg.3hr$label2 = ifelse(mat.m0.agg.3hr$genetype=="cytokine", mat.m0.agg.3hr$gene, "")
+genes.to.label = mat.m0.agg.3hr$gene[mat.m0.agg.3hr$label2!=""]
+ggplot(mat.m0.agg.3hr[!mat.m0.agg.3hr$fano==0,], aes(log2(dev2mean),(fano)))+ #aes(log2(dev2mean),log2(fano)))+
+  geom_point(aes(fill=genetype),alpha = 0.5, size =3,shape=21)+
+  geom_point(data = subset(mat.m0.agg.3hr[!mat.m0.agg.3hr$fano==0,], subset = gene %in% genes.to.label),aes(color = genetype), size = 4) +
+  geom_point(data = subset(mat.m0.agg.3hr[!mat.m0.agg.3hr$fano==0,], subset = gene %in% genes.to.label),size = 4, color = "black",shape = 21) +
+  # scale_fill_gradient(low="lightblue", high="red")+ggtitle(i)+
+  # facet_wrap(~time, ncol=4)+
+  geom_text_repel(      mapping = aes(label = label2),# color = "red",alpha = 0.5,
+                                     box.padding = .4 ,size = 5 ) +
+  # geom_smooth(method = "lm", se=F)+
+  geom_smooth(method = "gam", se=F)+
+  stat_cor(label.y = 3,label.x = -25, method = "pearson", p.digits = 0)+theme_bw(base_size = 18)+
+  ylab("avg. Fano factor")+xlab("log2(MSD)")+xlim(-16,5)
+
+#new plot style
+genes.to.label = mat.m0.agg.3hr$gene[mat.m0.agg.3hr$label2!=""]
+p1=ggplot(mat.m0.agg.3hr[!mat.m0.agg.3hr$fano==0,], aes(log2(dev2mean),(fano)))+
+  geom_point(aes(fill=genetype),alpha = 0.5, size =2,shape=21)+
+  geom_point(data = subset(mat.m0.agg.3hr, subset = gene %in% genes.to.label),aes(color = genetype), size = 4) +
+  geom_point(data = subset(mat.m0.agg.3hr, subset = gene %in% genes.to.label),size = 4, color = "black",shape = 21) +
+  geom_smooth(method = "gam", se=F)+
+  stat_cor(label.y = 3,label.x = -15, method = "pearson", p.digits = 0)+theme_bw(base_size = 18)+
+  ylab("avg. Fano factor")+xlab("log2(MSD)")+xlim(-16,5)
+p1 <- LabelPoints(plot = p1, points = genes.to.label, color = "black", size = I(5),repel = T, xnudge=0,ynudge=0)
+p1
+
+
+# Figure 3e old----
 collect = read.delim("./infotheo/channel_capacity_pairwise_M0rep2only_ISnorm_biological_categories3.txt")
 collect$pair = paste0(collect$stim1,"_", collect$stim2)
 collect = collect[grepl("3hr", collect$time),]
@@ -1231,6 +1352,76 @@ p1|p2|p3|p5
 
 ############################### Figure 4
 # Figure 4cde----
+# gene expression pairwise----------------------
+# channel capacity for each pairwise stimuli at each timepoint----
+collect = data.frame()
+list = c("CpG","P3CSK","LPS", "TNF", "IFNb",  "PIC") #
+
+
+for (i in c("3hr","8hr")){
+  print(i)
+  
+  macro = readRDS(paste0("./output/macrophage_M0_rep2only_500genes_DBEC.rds"))
+  macro = subset(macro, subset = timept==i)
+  
+  
+  for (j in seq(1:(length(list)-1) )){
+    for (k in seq(j+1,length(list)) ){
+      
+      for (gene in c(rownames(macro))){
+        
+        skip_to_next <- FALSE
+        print(gene)
+        
+        tryCatch(
+          {
+            
+            
+            print(list[j])
+            print(list[k])
+            
+            macro.subset = subset(x = macro, subset = stimulus==list[j]|stimulus == list[k])
+            
+            data = macro.subset[["ISnorm"]]@data
+            data = data.frame(data)
+            meta = macro.subset@meta.data
+            colnames(data) = paste0(meta$stimulus, "_",meta$timept)
+            my.dataframe = cbind(label = colnames(data), data.frame(t(data)))
+            my.dataframe$label = as.numeric(factor(my.dataframe$label, levels = sort(unique(my.dataframe$label))))
+            rownames(my.dataframe) = seq(1:nrow(my.dataframe))
+            my.dataframe.subset = my.dataframe[, colnames(my.dataframe) %in% c("label", gene)]
+            str(my.dataframe.subset)
+            
+            #--------------------------------mi using SLEMI -----------------------
+            
+            output_capacity <- capacity_logreg_main(my.dataframe.subset, signal = "label", 
+                                                    response = colnames(my.dataframe.subset)[-1],
+                                                    testing=T, boot_prob = 0.5, boot_num = 30, testing_cores = 4)
+            sd = sd(sapply(output_capacity$testing$bootstrap, '[[', 3)) #get cc from each bootstrap
+            
+            
+            tmp = data.frame(time = i, stim1 = list[j], stim2 = list[k], cc = output_capacity$cc, sd = sd, gene = gene)
+            collect = rbind(collect, tmp)
+            
+            # output_mi  <- mi_logreg_main(my.dataframe, signal = "label", response = colnames(my.dataframe)[-1],
+            #                              paste0("F:/scRNAseq_macro/scRNAseq_macro/infotheo/mi_", i),
+            #                              pinput=rep(1/6,6))
+            
+          }, error = function(e) { skip_to_next <<- TRUE})
+        
+        if(skip_to_next) { next }  
+        
+        
+      }
+    }
+  }
+}
+view(collect)
+# write.table(collect, "./infotheo/channel_capacity_pairwise_M0rep2only_ISnorm_allgenes.txt",quote=F, sep="\t",row.names = F)
+# write.table(collect, "./infotheo/channel_capacity_pairwise_M1_IFNg_ISnorm_allgenes.txt",quote=F, sep="\t",row.names = F)
+# write.table(collect, "./infotheo/channel_capacity_pairwise_M2_IL4_gt80_ISnorm_allgenes.txt",quote=F, sep="\t",row.names = F)
+
+
 # signaling input data--------------------------
 x.1 = readMat("F:/enhancer_dynamics/nfkb_trajectories_08142019/smoothed/nfkb_dynamics_LPS100ng_756_smoothed.mat")
 x.2 = readMat("F:/enhancer_dynamics/nfkb_trajectories_08142019/smoothed/nfkb_dynamics_ikbamut_10ngTNF_smoothed.mat")
@@ -2773,6 +2964,100 @@ ggplot(na.omit(collect[grepl("M0|M1|M2", collect$type),]), aes(stim_cells, cc, f
   geom_hline(yintercept = 2, linetype="dotted")
 
 
+#Figure 6 plot and label loadings----
+pc.loadings = read.delim("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr_prcomp_loadings.txt")
+rownames(pc.loadings) = pc.loadings$Loading
+genes.to.label = c("Cxcl10", "Mx2", "Tnfsf9","Nfkbie","Icam1", "Phldb1", "Cxcl2","Ccl4",
+                   "Cmpk2","Ifit3","Nfkbiz","Icam1","Zc3h12a","Peli1", "Ifit1", "Ccl7","Hmox1",
+                   "Ccl2","Ccl5", "Tnf",  "Il6",  "Ifit2","Ly6a","Fgl2",
+                   "Ccl3","Tnfaip3", "Socs3", "Clec4e")
+ggplot(pc.loadings, aes(x=rank(PC1), PC1))+ 
+  geom_bar(stat="identity", width=0.7, position = position_dodge(width=0.4))
+ggplot(pc.loadings, aes(x=rank(PC2), PC2))+ 
+  geom_bar(stat="identity", width=0.7, position = position_dodge(width=0.4))
+p1<-ggplot(pc.loadings, aes(x=PC1, PC2))+ 
+  geom_point(aes(color = PC3))+
+  geom_point(data = subset(pc.loadings, subset = Loading %in% genes.to.label),aes(color = PC3), size = 4) +
+  scale_color_gradient2(midpoint=0, low="blue", mid="white", high="red", space ="Lab" )+
+  geom_point(data = subset(pc.loadings, subset = Loading %in% genes.to.label),size = 4, color = "black",shape = 21) +
+  geom_hline(yintercept = 0)+geom_vline(xintercept = 0)+
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed")+theme_bw(base_size = 14)
+p1 <- LabelPoints(plot = p1, points = genes.to.label, color = "black", size = I(5),repel = T, xnudge=0,ynudge=0)
+p1
+
+# Figure 6 redo all pairs by MI for RSS----
+samptag.all = read.delim("./output/samptag.all_cellannotations_metadata.txt")
+samptag.all$Cell_Index = paste0("X", samptag.all$Cell_Index)
+
+macro = readRDS("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr.rds")
+DimPlot(macro, reduction = "tsne", group.by = "stimulus")
+DimPlot(macro, reduction = "tsne", group.by = "type")
+
+
+pc.scores = read.delim("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr_prcomp_scores.txt")
+colnames(pc.scores)[1]="Sample"
+pc.scores$stimulus = samptag.all$stimulus[match(pc.scores$Sample, samptag.all$Cell_Index)]
+pc.scores$type = samptag.all$type[match(pc.scores$Sample, samptag.all$Cell_Index)]
+# projected.data = read.delim("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr_2M03hrs_prcomp_rotated.txt")
+# projected.data$stimulus = samptag.all$stimulus[match(projected.data$Sample, samptag.all$Cell_Index)]
+# projected.data$type = samptag.all$type[match(projected.data$Sample, samptag.all$Cell_Index)]
+
+mi.frame = (pc.scores)
+# mi.frame = projected.data
+rownames(mi.frame)= mi.frame$Sample
+mi.frame$Sample = mi.frame$stimulus
+colnames(mi.frame)[1]="label"
+
+collect = data.frame()
+nPCs = 10
+list = c("CpG","P3CSK","LPS", "TNF", "IFNb",  "PIC") 
+for (m in c("M0","M1_IFNg","M2_IL4")){
+  print(m)
+
+  library(fpc);library(philentropy)
+  # pca.macro = as.data.frame(Embeddings(macro[["pca"]]))
+  
+  for (i in seq(1:(length(list)-1) )){
+    for (j in seq(i+1,length(list)) ){
+      
+      
+      print(list[i])
+      print(list[j])
+
+      wanted.1 = rownames(macro@meta.data)[macro@meta.data$type == m & macro@meta.data$stimulus == list[i] ]
+      wanted.2 = rownames(macro@meta.data)[macro@meta.data$type == m & macro@meta.data$stimulus == list[j] ]
+      
+      my.dataframe= mi.frame[(rownames(mi.frame)%in%wanted.1 | rownames(mi.frame)%in%wanted.2), c(1:(nPCs+1))]
+      
+      # my.dataframe=my.dataframe[grepl(s, my.dataframe$label),]
+      #--------------------------------mi using SLEMI -----------------------
+      
+      #calc information capacity: capacity_logreg_main(dataRaw, signal, response, output_path)
+      output_capacity <- capacity_logreg_main(my.dataframe, signal = "label", response = colnames(my.dataframe)[-1],
+                                              # paste0("F:/scRNAseq_macro/scRNAseq_macro/infotheo/cc_", i), 
+                                              testing = T, boot_num = 50, boot_prob = .5 ,testing_cores = 4) #without0hr
+      sd = sd(sapply(output_capacity$testing$bootstrap, '[[', 3)) #get cc from each bootstrap
+      tmp = data.frame(type = m, stim1 = list[i], stim2 = list[j], cc = output_capacity$cc, sd = sd)
+      collect = rbind(collect, tmp)
+      
+    }
+  }
+}
+# write.table(collect, "./infotheo/channel_capacity_pairwise_M0M1M2_RSI_3comps.txt",quote=F, sep="\t",row.names = F)
+# write.table(collect, "./infotheo/channel_capacity_pairwise_M0M1M2_RSI_10comps.txt",quote=F, sep="\t",row.names = F)
+
+collect$type = factor(collect$type, levels= c("M0","M1_IFNg","M2_IL4"))
+colors_list = (c(M0="#F8766D",M1_IFNg="#00BA38",M2_IL4="#619CFF"))
+collect$pair = paste0(collect$stim1, "_",collect$stim2)
+ggplot(na.omit(collect[grepl("M0|M1|M2", collect$type),]), aes(pair, cc, fill = type))+
+  geom_bar(stat="identity", position ="dodge")+theme_bw(base_size = 16)+ylab("channel capacity")+
+  geom_errorbar(aes(ymin=cc-sd, ymax=cc+sd), width=.5,position=position_dodge(1))+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
+  scale_fill_manual(values=colors_list)+
+  geom_hline(yintercept = 1, linetype="dotted")+
+  # geom_hline(yintercept = log(3)/log(2), linetype="dotted")+
+  geom_hline(yintercept = 2, linetype="dotted")+ylim(0,1)
+
 ######################################## Figure 7----
 # Figure 7d ----
 # plot disease channel capacity differences--------
@@ -2785,12 +3070,14 @@ dcast$HFD.diff = dcast$PM_B6.LFD-dcast$PM_B6.HFD
 genes.to.label = c("Cxcl10","AW112010","Mx1", "Ralgds", "Acod1","Phlda1","Pde4b", "Mx2","Swap70", "Tnfsf9",
                    "Slamf8","Cav1","Il4ra","Zfp36", "Icosl", "Cmpk2","Ifit3","Nfkbiz","Icam1","Zc3h12a","Peli1",
                    "Ccl5", "Tnf",  "Il6")
-p1=ggplot(dcast, aes(PM_B6.LFD-PM_B6.old, PM_B6.LFD-PM_B6.HFD))+geom_point(aes(color = PM_B6.LFD), size =2)+
-  geom_point(data = subset(dcast, subset = gene %in% genes.to.label),size = 4, aes(color = PM_B6.LFD)) + 
-  geom_point(data = subset(dcast, subset = gene %in% genes.to.label),size = 4, color = "red",shape = 21) + 
+p1=ggplot(dcast, aes(PM_B6.LFD-PM_B6.old, PM_B6.LFD-PM_B6.HFD))+
+  geom_point(aes(color = PM_B6.LFD), size =2)+
+  geom_point(data = subset(dcast, subset = gene %in% genes.to.label),aes(color = PM_B6.LFD), size = 4) +
+  geom_point(data = subset(dcast, subset = gene %in% genes.to.label),size = 4, color = "black",shape = 21) +
+  scale_color_gradient(low="lightblue", high="red")+
   geom_hline(yintercept = 0)+geom_vline(xintercept = 0)+
   geom_abline(slope = 1, intercept = 0, linetype = "dashed")+theme_bw(base_size = 14)
-p1 <- LabelPoints(plot = p1, points = genes.to.label, color = "red", size = I(5),repel = T, xnudge=0,ynudge=0)
+p1 <- LabelPoints(plot = p1, points = genes.to.label, color = "black", size = I(5),repel = T, xnudge=0,ynudge=0)
 p1
 
 
@@ -2865,6 +3152,10 @@ pheatmap(collect_distances.mat,
 
 # Figure 7g----
 #project disease new Feb 2021--------------------
+samptag.all = read.delim("./output/samptag.all_cellannotations_metadata.txt")
+samptag.all$Cell_Index = paste0("X", samptag.all$Cell_Index)
+colors_list = c("Unstim" = "gray", "CpG"="#F8766D", "IFNb"="#B79F00","LPS"= "#00BA38","P3CSK"= "#00BFC4","PIC"= "#619CFF","TNF"= "#F564E3")
+
 intersect_doPCA_from_file_and_project_second_dataset("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr.txt",
                                                      "./output/macrophage_PMexpts_Feb2021_rmUnstim_500genes_DBEC.txt", train_string = "2M0M1M23hrs",
                                                      center = T, scale = F)
@@ -2874,15 +3165,16 @@ intersect_doPCA_from_file_and_project_second_dataset("./output/macrophage_M0M1M2
 # debug(plot_pca)
 plot_pca("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr_prcomp_scores.txt", samptag.all$Cell_Index, samptag.all$type, pt.size = 0.1,ellipse = F, labels = F)
 plot_pca_projection("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr_prcomp_scores.txt", 
-                    "./output/macrophage_PMexpts_Feb2021_500genes_DBEC_2M0M1M23hrs_prcomp_rotated.txt",
-                    samptag.all$Cell_Index, samptag.all$stimulus, samptag.all$Cell_Index, samptag.all$stimulus)
+                    "./output/macrophage_PMexpts_Feb2021_rmUnstim_500genes_DBEC_2M0M1M23hrs_prcomp_rotated.txt",
+                    samptag.all$Cell_Index, samptag.all$stimulus, 
+                    samptag.all$Cell_Index, as.factor(samptag.all$stimulus),  pt.size = 0.1)
 plot_pca_projection_all("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr_prcomp_scores.txt", 
-                        "./output/macrophage_PMexpts_Feb2021_500genes_DBEC_2M0M1M23hrs_prcomp_rotated.txt",
+                        "./output/macrophage_PMexpts_Feb2021_rmUnstim_500genes_DBEC_2M0M1M23hrs_prcomp_rotated.txt",
                         samptag.all$Cell_Index, as.factor(samptag.all$type), 
-                        samptag.all$Cell_Index, as.factor(samptag.all$stimulus), ellipse =T)
+                        samptag.all$Cell_Index, as.factor(samptag.all$stimulus), ellipse =F)
 
 # plot projected
-projected.data = read.delim("./output/macrophage_PMexpts_Feb2021_500genes_DBEC_2M0M1M23hrs_prcomp_rotated.txt")
+projected.data = read.delim("./output/macrophage_PMexpts_Feb2021_rmUnstim_500genes_DBEC_2M0M1M23hrs_prcomp_rotated.txt")
 projected.data$stimulus = samptag.all$stimulus[match(projected.data$Sample, samptag.all$Cell_Index)]
 projected.data$type = samptag.all$type[match(projected.data$Sample, samptag.all$Cell_Index)]
 projected.data$type = factor(projected.data$type, levels= c("PM_B6.LFD","PM_B6.old","PM_B6.HFD" ))
@@ -3023,3 +3315,116 @@ ggplot(score, aes(type, score))+geom_bar(stat= "identity", aes(fill = type))+
   scale_fill_manual(values=colors_list)+
   theme_bw(base_size = 14)+theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 
+
+######### Fig 7 disease model, redo calc RSI pairwise----
+samptag.all = read.delim("./output/samptag.all_cellannotations_metadata.txt")
+samptag.all$Cell_Index = paste0("X", samptag.all$Cell_Index)
+
+pc.scores = read.delim("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr_prcomp_scores.txt")
+colnames(pc.scores)[1]="Sample"
+pc.scores$stimulus = samptag.all$stimulus[match(pc.scores$Sample, samptag.all$Cell_Index)]
+pc.scores$type = samptag.all$type[match(pc.scores$Sample, samptag.all$Cell_Index)]
+
+projected.data = read.delim("./output/macrophage_PMexpts_Feb2021_rmUnstim_500genes_DBEC_2M0M1M23hrs_prcomp_rotated.txt")
+# projected.data = read.delim("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr_2M03hrs_prcomp_rotated.txt")
+projected.data$stimulus = samptag.all$stimulus[match(projected.data$Sample, samptag.all$Cell_Index)]
+projected.data$type = samptag.all$type[match(projected.data$Sample, samptag.all$Cell_Index)]
+
+mi.frame = rbind(pc.scores, projected.data)
+# mi.frame = projected.data
+rownames(mi.frame)= mi.frame$Sample
+mi.frame$Sample = mi.frame$stimulus
+colnames(mi.frame)[1]="label"
+
+collect = data.frame()
+nPCs = 20
+list = c("CpG", "P3CSK","LPS", "TNF", "IFNb",  "PIC") 
+for (m in c("M0","M1_IFNg","M2_IL4","PM_B6.LFD","PM_B6.old","PM_B6.HFD")){
+  print(m)
+  
+  library(fpc);library(philentropy)
+  # pca.macro = as.data.frame(Embeddings(macro[["pca"]]))
+  
+  if (m =="PM_B6.LFD"|m =="PM_B6.old"|m =="PM_B6.HFD"){
+    list = c( "P3CSK","LPS", "TNF", "IFNb",  "PIC") 
+  }
+  
+  for (i in seq(1:(length(list)-1) )){
+    for (j in seq(i+1,length(list)) ){
+      
+      
+      print(list[i])
+      print(list[j])
+      
+      wanted.1 = rownames(mi.frame)[mi.frame$type == m & mi.frame$stimulus == list[i] ]
+      wanted.2 = rownames(mi.frame)[mi.frame$type == m & mi.frame$stimulus == list[j] ]
+      
+      my.dataframe= mi.frame[(rownames(mi.frame)%in%wanted.1 | rownames(mi.frame)%in%wanted.2), c(1:(nPCs+1))]
+      
+      # my.dataframe=my.dataframe[grepl(s, my.dataframe$label),]
+      #--------------------------------mi using SLEMI -----------------------
+      
+      #calc information capacity: capacity_logreg_main(dataRaw, signal, response, output_path)
+      output_capacity <- capacity_logreg_main(my.dataframe, signal = "label", response = colnames(my.dataframe)[-1],
+                                              # paste0("F:/scRNAseq_macro/scRNAseq_macro/infotheo/cc_", i), 
+                                              testing = T, boot_num = 50, boot_prob = .5 ,testing_cores = 4) #without0hr
+      sd = sd(sapply(output_capacity$testing$bootstrap, '[[', 3)) #get cc from each bootstrap
+      tmp = data.frame(type = m, stim1 = list[i], stim2 = list[j], cc = output_capacity$cc, sd = sd)
+      collect = rbind(collect, tmp)
+      
+    }
+  }
+}
+# write.table(collect, "./infotheo/channel_capacity_pairwise_M0M1M2_PMexpts.Feb2021_RSI_3comps.txt",quote=F, sep="\t",row.names = F)
+# write.table(collect, "./infotheo/channel_capacity_pairwise_M0M1M2_PMexpts.Feb2021_RSI_10comps.txt",quote=F, sep="\t",row.names = F)
+# write.table(collect, "./infotheo/channel_capacity_pairwise_M0M1M2_PMexpts.Feb2021_RSI_20comps.txt",quote=F, sep="\t",row.names = F)
+
+collect = read.delim("./infotheo/channel_capacity_pairwise_M0M1M2_PMexpts.Feb2021_RSI_3comps.txt")
+collect$type = factor(collect$type, levels= c("M0","M1_IFNg","M2_IL4", "PM_B6.LFD","PM_B6.old","PM_B6.HFD"))
+colors_list = (c(M0="#F8766D",M1_IFNg="#00BA38",M2_IL4="#619CFF"))
+colors_list = (c(M0="gray",M1_IFNg="gray",M2_IL4="gray",PM_B6.LFD="#F8766D",PM_B6.old="#00BA38",PM_B6.HFD="#619CFF"))
+collect$pair = paste0(collect$stim1, "_",collect$stim2)
+ggplot(na.omit(collect[!grepl("CpG", collect$pair),]), aes(pair, cc, fill = type))+
+  geom_bar(stat="identity", position ="dodge")+theme_bw(base_size = 16)+ylab("channel capacity")+
+  geom_errorbar(aes(ymin=cc-sd, ymax=cc+sd), width=.5,position=position_dodge(1))+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
+  scale_fill_manual(values=colors_list)+
+  geom_hline(yintercept = 1, linetype="dotted")+
+  # geom_hline(yintercept = log(3)/log(2), linetype="dotted")+
+  geom_hline(yintercept = 2, linetype="dotted")+ylim(0,1)
+
+
+# calc delta RSI----
+if(1){
+  collect = read.delim("./infotheo/channel_capacity_pairwise_M0M1M2_PMexpts.Feb2021_RSI_3comps.txt")
+  collect$type = factor(collect$type, levels= c("M0","M1_IFNg","M2_IL4","PM_B6.LFD","PM_B6.old","PM_B6.HFD" ))
+  collect$pair = paste0(collect$stim1, "_",collect$stim2)
+  tmp = na.omit(collect)
+}
+tmp.cast=  dcast(tmp, pair~type, value.var = 'cc')
+tmp.cast=  cbind(tmp.cast, sd = (dcast(tmp, pair~type, value.var = 'sd')[,-1])^2)# convert to variances
+tmp.cast = na.omit(tmp.cast)
+
+tmp.cast$M0.score = (tmp.cast$M0 - tmp.cast$M0)^2
+tmp.cast$M1.score = (tmp.cast$M1_IFNg - tmp.cast$M0)^2
+tmp.cast$M2.score = (tmp.cast$M2_IL4 - tmp.cast$M0)^2
+tmp.cast$LFD.score = (tmp.cast$PM_B6.LFD - tmp.cast$M0)^2
+tmp.cast$old.score = (tmp.cast$PM_B6.old - tmp.cast$M0)^2
+tmp.cast$HFD.score = (tmp.cast$PM_B6.HFD - tmp.cast$M0)^2
+
+tmp.cast$M0.sd = (tmp.cast$sd.M0 + tmp.cast$sd.M0)
+tmp.cast$M1.sd = (tmp.cast$sd.M1_IFNg + tmp.cast$sd.M0)
+tmp.cast$M2.sd = (tmp.cast$sd.M2_IL4 + tmp.cast$sd.M0)
+tmp.cast$LFD.sd = (tmp.cast$sd.PM_B6.LFD + tmp.cast$sd.M0)
+tmp.cast$old.sd = (tmp.cast$sd.PM_B6.old + tmp.cast$sd.M0)
+tmp.cast$HFD.sd = (tmp.cast$sd.PM_B6.HFD + tmp.cast$sd.M0)
+
+score = data.frame(score = sqrt(colSums(tmp.cast[,c(14:19)])),
+                   sd = sqrt(colSums(tmp.cast[,c(20:25)])))
+score$type = rownames(score)
+score$type = factor(score$type, levels= c("M0.score","M1.score","M2.score","LFD.score","old.score","HFD.score" ))
+colors_list = (c(M0.score="gray",M1.score="gray",M2.score="gray",LFD.score="#F8766D",old.score="#00BA38",HFD.score="#619CFF"))
+ggplot(score[grepl("", score$type),], aes(type, score))+geom_bar(stat= "identity", aes(fill = type))+
+  geom_errorbar(aes(ymin=score-sd, ymax=score+sd), width=.3,position=position_dodge(1))+
+  scale_fill_manual(values=colors_list)+
+  theme_bw(base_size = 14)+theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
