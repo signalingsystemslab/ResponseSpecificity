@@ -1,6 +1,6 @@
 # Response Specificity code
 # Contact: katherinesheu[at]ucla.edu
-# last updated Oct 2021
+# last updated Aug 2022
 
 # anxillary functions----
 PCA_from_file = function (file, center = TRUE, scale = FALSE, fread = FALSE, 
@@ -548,20 +548,29 @@ ggsave(p, filename = "heatmap_singlecell.ISnorm_M0_rep2only_3hr.png")
 # Figure 1e----
 # plotted Ccl5, Tnf, Cxcl10 Ridgeplots
 macro = readRDS("output/macrophage_M0_rep2only_500genes_DBEC.rds")
+ymax = 12
 colors_list = c(Unstim = "gray", CpG="#F8766D", IFNb="#B79F00",LPS= "#00BA38",P3CSK= "#00BFC4",PIC= "#619CFF",TNF= "#F564E3")
 p1=RidgePlot(object = subset(macro, subset= timept=="3hr"|timept=="0.0hr"), sort = "increasing",
-             features = c("Ccl5"), group.by = "stimulus", assay = "ISnorm" , y.max = ymax) +
+             features = c("Ccl5"), group.by = "stimulus", assay = "ISnorm" , y.max = ymax) +xlim(-1,11.5)+
   scale_fill_manual(values= colors_list)+
   stat_summary(fun.y = median, geom='line',  size = 1, colour = "black") +theme(legend.position = "None")+ylab(NULL)+xlab(NULL)+ggtitle(NULL)
 p2=RidgePlot(object = subset(macro, subset= timept=="3hr"|timept=="0.0hr"),  sort = "increasing",
-             features = c("Tnf"), group.by = "stimulus", assay = "ISnorm" , y.max = ymax) +
+             features = c("Tnf"), group.by = "stimulus", assay = "ISnorm" , y.max = ymax) +xlim(-1,11.5)+
   scale_fill_manual(values= colors_list)+
   stat_summary(fun.y = median, geom='line', size = 1, colour = "black") +theme(legend.position = "None")+ylab(NULL)+xlab(NULL)+ggtitle(NULL)
 p3=RidgePlot(object = subset(macro, subset= timept=="3hr"|timept=="0.0hr"),  sort = "increasing",
-             features = c("Cxcl10"), group.by = "stimulus", assay = "ISnorm" , y.max = ymax) +
+             features = c("Cxcl10"), group.by = "stimulus", assay = "ISnorm" , y.max = ymax) +xlim(-1,11.5)+
   scale_fill_manual(values= colors_list)+
   stat_summary(fun.y = median, geom='line', size = 1, colour = "black") +theme(legend.position = "None")+ylab(NULL)+xlab(NULL)+ggtitle(NULL)
 p1/p2/p3
+
+macro = readRDS("output/macrophage_M0_rep2only_500genes_DBEC.rds")
+colors_list = c(Unstim = "gray", CpG="#F8766D", IFNb="#B79F00",LPS= "#00BA38",P3CSK= "#00BFC4",PIC= "#619CFF",TNF= "#F564E3")
+RidgePlot(object = subset(macro, subset= timept=="3hr"|timept=="0.0hr"), sort = "increasing",
+             features = c("Cmpk2"), group.by = "stimulus", assay = "ISnorm" , y.max = ymax) +xlim(-1,11.5)+
+  scale_fill_manual(values= colors_list)+
+  stat_summary(fun.y = median, geom='line',  size = 1, colour = "black") +theme(legend.position = "None")+ylab(NULL)+xlab(NULL)+ggtitle(NULL)
+
 
 # Figure 1f----
 macro = readRDS("./output/macrophage_M0_rep2only_500genes_DBEC.rds")
@@ -601,6 +610,17 @@ ggplot(mat.select.m[grepl("3hr", mat.select.m$variable),], aes(mean, value, colo
   geom_abline(slope = 1, intercept = 0, linetype="dotted")+xlim(0,10)+ylim(0,9)+ylab("variance")+
   facet_wrap(~gene, scales = "fixed", ncol = 1)+theme_classic(base_size = 14)
 
+#mean/var Cmpk2 extra gene
+mat.select.m = mat.m[grepl("Cmpk2", mat.m$gene),]
+num_genes = 1
+mat.select.m$stimulus = c(rep("CpG",4*num_genes), rep("IFNb",4*num_genes),rep("LPS",4*num_genes),
+                          rep("P3CSK",4*num_genes), rep("PIC",4*num_genes),rep("TNF",4*num_genes), rep("Unstim",num_genes))
+mat.select.m$time = c(rep(c(rep(0.25,num_genes),rep(1,num_genes),rep(3,num_genes),rep(8,num_genes)), 6), rep(0, num_genes))
+mat.select.m$gene = factor(mat.select.m$gene, levels = c("Cmpk2"))
+ggplot(mat.select.m[grepl("3hr", mat.select.m$variable),], aes(mean, value, color = stimulus))+
+  geom_point(size = 5,alpha = 0.75)+scale_fill_manual(values= colors_list)+
+  geom_abline(slope = 1, intercept = 0, linetype="dotted")+xlim(0,10)+ylim(0,9)+ylab("variance")+
+  facet_wrap(~gene, scales = "fixed", ncol = 1)+theme_classic(base_size = 14)
 
 ########################## Figure 2
 # Figure 2a----
@@ -1166,6 +1186,20 @@ p1=ggplot(collect[grepl("Ccl5$", collect$gene) &grepl("3hr", collect$time),], ae
   theme_classic(base_size = 16) +theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1), legend.position = "None")+ylim(0,1)
 p1|p2|p3
 
+p1=ggplot(collect[grepl("Cmpk2$", collect$gene) &grepl("3hr", collect$time),], aes(pair, cc))+geom_bar(stat = "identity",position="dodge",(aes(fill = color)))+
+  scale_fill_manual(values = colors_list)+ ylab("max MI (bits)")+
+  geom_errorbar(aes(ymin=cc-sd, ymax=cc+sd), width=.5,position=position_dodge(0.05))+
+  theme_classic(base_size = 16) +theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1), legend.position = "None")+ylim(0,1)
+p2=ggplot(collect[grepl("Nfkbiz$", collect$gene) &grepl("3hr", collect$time),], aes(pair, cc))+geom_bar(stat = "identity",position="dodge",(aes(fill = color)))+
+  scale_fill_manual(values = colors_list)+ ylab("max MI (bits)")+
+  geom_errorbar(aes(ymin=cc-sd, ymax=cc+sd), width=.5,position=position_dodge(0.05))+
+  theme_classic(base_size = 16) +theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1), legend.position = "None")+ylim(0,1)
+p3=ggplot(collect[grepl("Icam1$", collect$gene) &grepl("3hr", collect$time),], aes(pair, cc))+geom_bar(stat = "identity",position="dodge",(aes(fill = color)))+
+  scale_fill_manual(values = colors_list)+ ylab("max MI (bits)")+
+  geom_errorbar(aes(ymin=cc-sd, ymax=cc+sd), width=.5,position=position_dodge(0.05))+
+  theme_classic(base_size = 16) +theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1), legend.position = "None")+ylim(0,1)
+p1|p2|p3
+
 # Figure 3c----
 collect_all = read.delim("./infotheo/SLEMI_singlegene_collectall_M0_rep2only_ISnorm_500genes.txt")
 ggplot(collect_all[grepl("3hr", collect_all$time),], aes( cc))+ geom_density()+ #graph it USE THIS
@@ -1178,11 +1212,37 @@ ggplot(collect_all[grepl("3hr", collect_all$time),], aes( cc))+ geom_density()+ 
 
 dcast = dcast(collect_all, gene~time, value.var = "cc")
 rownames(dcast) = dcast$gene
+dcast = dcast[order(dcast[,4], decreasing = T),]
 p=pheatmap(na.omit(dcast[(dcast[,4] > .7),4, drop=F]), scale = "none", clustering_method = "ward.D2", 
            colorRampPalette((brewer.pal(n = 11, name = "Greens")))(103),
-           cluster_cols = F, cluster_rows = T, show_rownames = T)
+           cluster_cols = F, cluster_rows = F, show_rownames = T)
 row_order = as.character(na.omit(dcast$gene[(dcast[,4] > .7)])[p$tree_row$order])
+row_order = as.character(na.omit(dcast$gene[(dcast[,4] > .7)]))
 
+# gene expression heatmap in same order---------------------
+macro = readRDS("./output/macrophage_M0_rep2only_500genes_DBEC.rds")
+data = GetAssayData(object = macro, assay = "ISnorm", slot = "data")
+data <- as.data.frame( as.matrix(data))
+meta = macro@meta.data
+meta$stimulus <- factor(meta$stimulus, levels = c("Unstim", "LPS", "PIC", "IFNb", "P3CSK", "CpG", "TNF"))
+meta = meta[order(meta$stimulus), ]
+meta = meta[order(meta$timept), ]
+# meta = meta[grepl("LPS|P3C",meta$stimulus),]
+meta = meta[grepl("3hr",meta$timept),]
+count =0
+for (i in c(names(table(meta$timept)))) {
+  count[i] <- table(meta$timept)[names(table(meta$timept))==i]
+}
+colseps <- cumsum(count[-1])
+col_order = rownames(meta)
+colors_list = list(stimulus = c(Unstim = "gray", CpG="#F8766D", IFNb="#B79F00",LPS= "#00BA38",P3CSK= "#00BFC4",PIC= "#619CFF",TNF= "#F564E3"))
+pheatmap(data[row_order,col_order], scale = "row", cluster_rows = F, cluster_cols = F, clustering_method = "ward.D2", 
+         colorRampPalette(rev(brewer.pal(n = 11, name ="RdBu"))[2:11])(103),
+         gaps_col = colseps[-6],
+         breaks=c(-2,seq(-1,1,length=100),2),
+         annotation_col = data.frame(macro@meta.data[,c(7,6)]), 
+         annotation_colors = colors_list,
+         show_colnames = F, show_rownames = T)
 
 # Figure 3d----
 # mean vs variance contribution to channel capacity------
@@ -1692,13 +1752,20 @@ if(1){
   collect.cast_codon = dcast(collect, pair~codon, value.var = "cc")
   # collect_genes = read.delim("./infotheo/channel_capacity_pairwise_M0rep2only_ISnorm_allgenes.txt")
   collect_genes = read.delim("./infotheo/channel_capacity_pairwise_BMDM2_WT_ISnorm_allgenes.txt")
+  collect.cast_codon.WT = data.frame(type = "WT", collect.cast_codon)
+  collect_genes.WT = collect_genes
 }
+
 if(1){
   collect = rbind(read.delim("./infotheo/SLEMI_pairwise_NFkBsignalingcodons_IkBaMM_zscore.txt"))
   # read.delim( "./infotheo/SLEMI_pairwise_NFkBsignalingcodons_all6_IkBaMM.txt"))
   collect.cast_codon = dcast(collect, pair~codon, value.var = "cc")
   collect_genes = read.delim("./infotheo/channel_capacity_pairwise_BMDM2_MM_ISnorm_allgenes.txt")
+  collect.cast_codon.MM = data.frame(type = "MM", collect.cast_codon)
+  collect_genes.MM = collect_genes
 }
+collect.cast_codon = rbind(collect.cast_codon.WT, collect.cast_codon.MM)
+collect_genes = rbind(collect_genes.WT, collect_genes.MM)
 
 if(0){
   collect = rbind(read.delim("./infotheo/SLEMI_pairwise_NFkBsignalingcodons_IkBaWT_zscore.txt"),
@@ -1719,18 +1786,21 @@ if(0){
 }
 collect_genes$pair = paste0(collect_genes$stim1,"_", collect_genes$stim2)
 library(reshape2)
-collect.cast = dcast(collect_genes, pair~gene, value.var = "cc")
-collect.all = cbind(collect.cast_codon, collect.cast[match(collect.cast_codon$pair, (collect.cast$pair)),-1])
+collect_genes$type_pair = paste0(collect_genes$time, ".", collect_genes$pair)
+collect.cast = dcast(collect_genes, type_pair~gene, value.var = "cc")
+collect.all = cbind(collect.cast_codon, 
+                    collect.cast[match(paste0("BMDM2_",collect.cast_codon$type, ".",collect.cast_codon$pair), 
+                                       (collect.cast$type_pair)),-1])
 collect.all = collect.all[!grepl("CpG|Unstim",collect.all$pair),]
 
-rownames(collect.all) = collect.all$pair
+rownames(collect.all) = paste0(collect.all$type,".",collect.all$pair)
 ggplot(collect.all, aes(pair, Cxcl10))+geom_bar(stat= "identity")
-ggplot(collect.all, aes(oscVSnonosc, collect.all[,"Cxcl10"], label = pair))+geom_point(size = 5)+theme_bw()+geom_text_repel()
-ggplot(collect.all, aes(totalactivity, collect.all[,"Tlr2"], label = pair))+geom_point(size = 5)+theme_bw()+geom_text_repel()
-ggplot(collect.all, aes(speed, collect.all[,"Tlr2"], label = pair))+geom_point(size = 5)+theme_bw()+geom_text_repel()
+ggplot(collect.all, aes(oscVSnonosc, collect.all[,"Cxcl10"], label = pair, color = type))+geom_point(size = 5)+theme_bw()+geom_text_repel()
+ggplot(collect.all, aes(totalactivity, collect.all[,"Nfkbiz"], label = pair, color = type))+geom_point(size = 5)+theme_bw()+geom_text_repel()
+ggplot(collect.all, aes(duration, collect.all[,"Nfkbiz"], label = pair, color = type))+geom_point(size = 5)+theme_bw()+geom_text_repel()
 
 corrs.all = data.frame()
-for (i in 8:499){
+for (i in 9:499){
   
   skip_to_next <- FALSE
   
@@ -1798,6 +1868,212 @@ ggplot(corrs.all.m[!grepl('pval', corrs.all.m$variable)&grepl("^NFkB$", corrs.al
   facet_wrap(~variable, scales = "free")
 
 
+#######################################################
+# redo Figure 4f - signaling codons to RS----
+expt.info = readxl::read_excel("F://enhancer_dynamics/nfkb_trajectories_20190302/expt_info.xlsx")
+features = read.delim("F://enhancer_dynamics/features.txt", sep = ",")
+ggplot(features[grepl("610|547|756|566|754|783", features$ID), ], aes(as.factor(ID),off_times))+geom_boxplot(outlier.shape =NA)+
+  geom_point(position = "jitter", aes(color = as.factor(ID)))+theme_bw(base_size = 18)
+ggplot(features[grepl("610|547|756|566|754|783", features$ID), ], aes(as.factor(ID),oscpower))+geom_boxplot(outlier.shape =NA)+
+  geom_point(position = "jitter", aes(color = as.factor(ID)))+theme_bw(base_size = 18)
+ggplot(features[grepl("610|547|756|566|754|783", features$ID), ], aes(as.factor(ID),derivatives_002))+geom_boxplot(outlier.shape =NA)+
+  geom_point(position = "jitter", aes(color = as.factor(ID)))+theme_bw(base_size = 18)
+
+feature.names = colnames(features)[-c(1,2)]
+features.wanted = features[grepl("610|547|756|566|754|783", features$ID), ]
+
+# make codons
+k <- which(is.na(features.wanted), arr.ind=TRUE)
+features.wanted.median = (features.wanted)
+features.wanted.median[k] <-0
+# features.wanted.median[k] <- colMeans(features.wanted.median[,-1], na.rm=TRUE)[features.wanted.median[,1]]
+
+features.wanted.median$speed = rowMeans(features.wanted.median[,c("derivatives_002", "max_pk1_speed", "pk1_time")])
+features.wanted.median$peakAmp = rowMeans(features.wanted.median[,c("fold_change", "peak2peak", "pk1_amp")])
+features.wanted.median$oscVSnonosc = (features.wanted.median[,c("oscpower")])
+features.wanted.median$totalactivity = (features.wanted.median[,c("max_integral")])
+features.wanted.median$duration = rowMeans(features.wanted.median[,c("duration_002", "num_peaks")])
+features.wanted.median$earlyLate = (features.wanted.median[,c("time2HalfMaxIntegral")])
+
+features.codons = features.wanted.median[, c("ID","Name","speed","peakAmp","oscVSnonosc","totalactivity",
+                                             "duration","earlyLate")]
+features.codons$Name= ifelse(grepl("P3C", features.codons$Name), "P3CSK",
+                             ifelse(grepl("LPS", features.codons$Name), "LPS",
+                                    ifelse(grepl("PIC", features.codons$Name), "PIC",
+                                           ifelse(grepl("TNF", features.codons$Name), "TNF",
+                                                  ifelse(grepl("CpG", features.codons$Name), "CpG","Unstim")
+                                           ))))
+#calc pairwise for codons (BMDM normal all stimuli dataset)----  
+collect = data.frame()
+list = c("CpG","P3CSK","LPS", "TNF", "PIC", "Unstim") #
+
+for (j in seq(1:(length(list)-1) )){
+  for (k in seq(j+1,length(list)) ){
+    
+    for (codon in c("speed","peakAmp","oscVSnonosc","totalactivity","duration","earlyLate")){
+      
+      skip_to_next <- FALSE
+      print(codon)
+      
+      tryCatch(
+        {
+          
+          
+          print(list[j])
+          print(list[k])
+          
+          data = features.codons
+          data = data[grep(paste0(list[k],"|",list[j]), data$Name),]
+          
+          #--------------------------------mi using SLEMI -----------------------
+          
+          output_capacity <- capacity_logreg_main(data, signal = "Name", 
+                                                  response = codon, #c("speed","peakAmp","oscVSnonosc","totalactivity","duration","earlyLate"),#codon,
+                                                  testing=T, boot_prob = 0.5, boot_num = 30, testing_cores = 4)
+          sd = sd(sapply(output_capacity$testing$bootstrap, '[[', 3)) #get cc from each bootstrap
+          
+          
+          tmp = data.frame(time = "WT", stim1 = list[j], stim2 = list[k], cc = output_capacity$cc, sd = sd, codon = codon) #"all")#
+          collect = rbind(collect, tmp)
+          
+          # output_mi  <- mi_logreg_main(my.dataframe, signal = "label", response = colnames(my.dataframe)[-1],
+          #                              paste0("F:/scRNAseq_macro/scRNAseq_macro/infotheo/mi_", i),
+          #                              pinput=rep(1/6,6))
+          
+        }, error = function(e) { skip_to_next <<- TRUE; print("error")})
+      
+      if(skip_to_next) { next }  
+      
+      
+    }
+  }
+}
+collect$pair = paste0(collect$stim1,"_", collect$stim2)
+write.table(collect, "./infotheo/SLEMI_pairwise_NFkBsignalingcodons_WTstims.txt",quote = F, sep = "\t",row.names = F)
+
+collect$pair = factor(collect$pair, levels= c("CpG_LPS","CpG_P3CSK", "P3CSK_LPS",
+                                              "CpG_TNF","CpG_Unstim","LPS_TNF","LPS_Unstim", "P3CSK_TNF","P3CSK_Unstim",
+                                              "CpG_PIC","LPS_PIC","P3CSK_PIC",
+                                              "TNF_PIC", "PIC_Unstim",
+                                              "TNF_Unstim"))
+collect$pair = factor(collect$pair, levels= c("CpG_Unstim", 
+                                              "LPS_Unstim", "P3CSK_Unstim","PIC_Unstim","TNF_Unstim",
+                                              "CpG_LPS","CpG_P3CSK","CpG_PIC","CpG_TNF",
+                                              "P3CSK_LPS","LPS_PIC","LPS_TNF",
+                                              "P3CSK_PIC","P3CSK_TNF",
+                                              "TNF_PIC"))
+collect$color = as.factor(ifelse(grepl("Unstim",collect$pair), "Unstim", 
+                                 ifelse(grepl("CpG",collect$pair), "CpG", 
+                                        ifelse(grepl("LPS",collect$pair), "LPS", 
+                                               ifelse(grepl("P3CSK",collect$pair), "P3CSK", 
+                                                      ifelse(grepl("PIC",collect$pair), "PIC",
+                                                             ifelse(grepl("TNF",collect$pair), "TNF",0)
+                                                      )))) ))
+colors_list = c("Unstim" = "gray", "CpG"="#F8766D", "IFNb"="#B79F00","LPS"= "#00BA38","P3CSK"= "#00BFC4","PIC"= "#619CFF","TNF"= "#F564E3")
+
+# correlate to gene expression RS----
+
+if(1){
+  collect = rbind(read.delim("./infotheo/SLEMI_pairwise_NFkBsignalingcodons_WTstims.txt"))
+  collect.cast_codon = dcast(collect, pair~codon, value.var = "cc")
+  collect_genes = read.delim("./infotheo/channel_capacity_pairwise_M0rep2only_ISnorm_allgenes.txt")
+}
+
+collect_genes$pair = paste0(collect_genes$stim1,"_", collect_genes$stim2)
+library(reshape2)
+collect.cast = dcast(collect_genes, pair~gene, value.var = "cc")
+collect.all = cbind(collect.cast_codon, 
+                    collect.cast[match(collect.cast_codon$pair, (collect.cast$pair)),-1])
+collect.all = collect.all[!grepl("Unstim",collect.all$pair),]
+
+rownames(collect.all) = collect.all$pair
+ggplot(collect.all, aes(pair, Cxcl10))+geom_bar(stat= "identity")
+ggplot(collect.all, aes(totalactivity, collect.all[,"Cxcl10"], label = pair))+
+  geom_point(size = 5)+theme_bw()+geom_text_repel()+geom_smooth(method = "lm",se = F, linetype="dashed")
+ggplot(collect.all, aes(oscVSnonosc, collect.all[,"Tnf"], label = pair))+
+  geom_point(size = 5)+theme_bw()+geom_text_repel()+geom_smooth(method = "lm",se = F, linetype="dashed")
+ggplot(collect.all, aes(earlyLate, collect.all[,"Clec4e"], label = pair))+
+  geom_point(size = 5)+theme_bw()+geom_text_repel()+geom_smooth(method = "lm",se = F, linetype="dashed")
+ggplot(collect.all, aes(peakAmp, collect.all[,"Pilra"], label = pair))+
+  geom_point(size = 5)+theme_bw()+geom_text_repel()+geom_smooth(method = "lm",se = F, linetype="dashed")
+ggplot(collect.all, aes(duration, collect.all[,"Cmpk2"], label = pair))+
+  geom_point(size = 5)+theme_bw()+geom_text_repel()+geom_smooth(method = "lm",se = F, linetype="dashed")
+
+for (gene in c("Cxcl10","Clec4e", "Tnf", "Mmp9")){
+  p1=ggplot(collect.all, aes(totalactivity, collect.all[,gene], label = pair))+
+    geom_point(size = 5)+theme_bw()+geom_text_repel()+geom_smooth(method = "lm",se = F, linetype="dashed")
+  p2=ggplot(collect.all, aes(oscVSnonosc, collect.all[,gene], label = pair))+
+    geom_point(size = 5)+theme_bw()+geom_text_repel()+geom_smooth(method = "lm",se = F, linetype="dashed")
+  p3=ggplot(collect.all, aes(duration, collect.all[,gene], label = pair))+
+    geom_point(size = 5)+theme_bw()+geom_text_repel()+geom_smooth(method = "lm",se = F, linetype="dashed")
+  p4=ggplot(collect.all, aes(peakAmp, collect.all[,gene], label = pair))+
+    geom_point(size = 5)+theme_bw()+geom_text_repel()+geom_smooth(method = "lm",se = F, linetype="dashed")
+  p5=ggplot(collect.all, aes(speed, collect.all[,gene], label = pair))+
+    geom_point(size = 5)+theme_bw()+geom_text_repel()+geom_smooth(method = "lm",se = F, linetype="dashed")
+  p6=ggplot(collect.all, aes(earlyLate, collect.all[,gene], label = pair))+
+    geom_point(size = 5)+theme_bw()+geom_text_repel()+geom_smooth(method = "lm",se = F, linetype="dashed")
+  print(p1|p2|p3|p4|p5|p6)
+  
+}
+
+corrs.all = data.frame()
+for (i in 8:499){
+  
+  skip_to_next <- FALSE
+  
+  
+  tryCatch(
+    {
+      print(colnames(collect.all)[i])
+      corrs = data.frame(
+        gene = colnames(collect.all)[i],
+        osc = cor.test(collect.all$oscVSnonosc, collect.all[,i], method = "pearson")$estimate,
+        speed =cor.test(collect.all$speed, collect.all[,i], method = "pearson")$estimate,
+        peakAmp=cor.test(collect.all$peakAmp, collect.all[,i], method = "pearson")$estimate,
+        earlyLate=cor.test(collect.all$earlyLate, collect.all[,i], method = "pearson")$estimate,
+        duration=cor.test(collect.all$duration, collect.all[,i], method = "pearson")$estimate,
+        totalactivity=cor.test(collect.all$totalactivity, collect.all[,i], method = "pearson")$estimate,
+        # all6codons=cor.test(collect.all$all, collect.all[,i], method = "pearson")$estimate,
+        osc.pval = cor.test(collect.all$oscVSnonosc, collect.all[,i], method = "pearson")$p.value,
+        speed.pval =cor.test(collect.all$speed, collect.all[,i], method = "pearson")$p.value,
+        peakAmp.pval=cor.test(collect.all$peakAmp, collect.all[,i], method = "pearson")$p.value,
+        earlyLate.pval=cor.test(collect.all$earlyLate, collect.all[,i], method = "pearson")$p.value,
+        duration.pval=cor.test(collect.all$duration, collect.all[,i], method = "pearson")$p.value,
+        totalactivity.pval=cor.test(collect.all$totalactivity, collect.all[,i], method = "pearson")$p.value
+        # all6codons.pval=cor.test(collect.all$all, collect.all[,i], method = "pearson")$p.value
+        
+      )
+      corrs.all = rbind(corrs.all, corrs)
+    }, error = function(e) { skip_to_next <<- TRUE; print("error")})
+  
+  if(skip_to_next) { next }  
+}
+
+rownames(corrs.all) = corrs.all$gene
+# clusters = readxl::read_excel("F://scRNAseq_macro/scRNAseq_macro/fit_mean_modv3_p38input/reassign_genes_to_grns_unweightedcost_500genes_Jan2021_ks.xlsx")
+clusters = readxl::read_excel("./../SuppTables/TableS3_genes2GRS.xlsx")
+corrs.all$clusters = clusters$clusters[match(rownames(corrs.all), clusters$gene)]
+corrs.all$clusters = factor(corrs.all$clusters, level = c("AP1","NFkB","NFkB&p38","NFkB|IRF","IRF"))                                  
+pheatmap(corrs.all[corrs.all$clusters=="NFkB",c(2:7)], scale = "none", cluster_rows = T, cluster_cols = F)
+
+corrs.pval = corrs.all[apply(corrs.all[,c(8:13)]<0.01, 1, any),] 
+corrs.all = corrs.pval
+# test = corrs.all[corrs.all$clusters=="NFkB&p38",]
+test = corrs.all[grepl("NFkB", corrs.all$clusters),]
+test = test[order(test$clusters),]
+p=pheatmap(na.omit(test[,2:7]), cluster_rows = T, cluster_cols =T, scale = "none", #clustering_method = "ward.D2",
+           cutree_rows = 4, annotation_row = data.frame(clutser = test[,c(14), drop = F]) , show_rownames = F)
+
+gene = "Cxcl10"
+ggplot(collect.all, aes(oscVSnonosc, collect.all[,gene], label = pair))+ylab(paste(gene ,"max info (bits)"))+
+  geom_point(size = 5)+theme_bw(base_size = 14)+geom_text_repel()+geom_abline(slope = 1, linetype="dashed")+ylim(0,1)
+ggplot(collect.all, aes(duration, collect.all[,gene], label = pair))+ylab(paste(gene ,"max info (bits)"))+
+  geom_point(size = 5)+theme_bw(base_size = 14)+geom_text_repel()+geom_abline(slope = 1, linetype="dashed")+ylim(0,1)
+ggplot(collect.all, aes(totalactivity, collect.all[,gene], label = pair))+ylab(paste(gene ,"max info (bits)"))+
+  geom_point(size = 5)+theme_bw(base_size = 14)+geom_text_repel()+geom_abline(slope = 1, linetype="dashed")+ylim(0,1)
+ggplot(collect.all, aes(earlyLate, collect.all[,gene], label = pair))+ylab(paste(gene ,"max info (bits)"))+
+  geom_point(size = 5)+theme_bw(base_size = 14)+geom_text_repel()+geom_abline(slope = 1, linetype="dashed")+ylim(0,1)
+
 ##################################Figure 5-----
 # Figure 5b----
 sdev = read.delim("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr_prcomp_sdev.txt")
@@ -1824,10 +2100,124 @@ p1=ggplot(umap.projected.layout, aes(X1, X2))+geom_point(aes(color = stimulus),s
 p2=ggplot(umap.projected.layout, aes(X1, X2))+geom_point(aes(color = type),size=0.01)+theme_bw(base_size = 18)+xlab("UMAP1")+ylab("UMAP2")
 p1|p2
 
-macro = readRDS("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr.rds")
 
-if(1){
+#pca of steady states vs responses and bhattacharya distances----
+if (0){
+  macro = readRDS("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr.rds")
+  macro0 = readRDS("./output/macrophage_baselines_0hr_500genes_DBEC.rds")
+  DimPlot(macro0, reduction = "pca", group.by = "type")
+  macro = merge(macro, macro0)
+  # macro = SCTransform(macro)
+  macro@active.assay = "ISnorm"
+  macro = ScaleData(macro);macro = FindVariableFeatures(macro);
+  # macro@assays$ISnorm@scale.data = macro@assays$ISnorm@data #if want centered, unscaled
+  macro = RunPCA(macro)
+  macro = RunUMAP(macro,dims = 1:5)
+  DimPlot(macro, reduction = "umap", group.by = "type")
+  
+  red = "pca"
+  dimensions = c(1,2)
+  wanted = rownames(macro@meta.data)[macro@meta.data$type=="M0"]
+  list = as.list(wanted);  names(list) = macro@meta.data$stimulus[match(list, rownames(macro@meta.data))]
+  list = split(unlist(list, use.names = FALSE), rep(names(list), lengths(list))) #merge under unique names
+  p1=DimPlot(object = macro, dims = dimensions, cells.highlight = list, reduction = red, group.by = "stimulus", raster = F,sizes.highlight=0.1,cols.highlight = c("black",rev(hue_pal() (length( unique(names(list)) )-1) ) ),pt.size = 0.1)+theme(legend.position = "None")+ggtitle("M0")
+  wanted = rownames(macro@meta.data)[macro@meta.data$type=="M1_IFNg"]
+  list = as.list(wanted);  names(list) = macro@meta.data$stimulus[match(list, rownames(macro@meta.data))]
+  list = split(unlist(list, use.names = FALSE), rep(names(list), lengths(list))) #merge under unique names
+  p2=DimPlot(object = macro, dims = dimensions, cells.highlight = list, reduction = red, group.by = "stimulus", raster = F,sizes.highlight=0.1,cols.highlight = c("black",rev(hue_pal() (length( unique(names(list)) )-1) ) ),pt.size = 0.1)+theme(legend.position = "None")+ggtitle("M1")
+  wanted = rownames(macro@meta.data)[macro@meta.data$type=="M2_IL4"]
+  list = as.list(wanted);  names(list) = macro@meta.data$stimulus[match(list, rownames(macro@meta.data))]
+  list = split(unlist(list, use.names = FALSE), rep(names(list), lengths(list))) #merge under unique names
+  p3=DimPlot(object = macro, dims = dimensions, cells.highlight = list, reduction = red, group.by = "stimulus", raster = F,sizes.highlight=0.1,cols.highlight = c("black",rev(hue_pal() (length( unique(names(list)) )-1) ) ),pt.size = 0.1)+ggtitle("M2")
+  p1|p2|p3
+  
+  table(macro$type, macro$stimulus)
+  
+  pca.macro = macro@reductions$pca@cell.embeddings
+  collect_distances = data.frame()
+  nPCs = 3
+  for (m in c("M0","M1_IFNg","M2_IL4")){
+    for (n in c("M0","M1_IFNg","M2_IL4")){
+    print(m)
+    print(n)
+    library(fpc);library(philentropy)
+    # pca.macro = as.data.frame(Embeddings(macro[["pca"]]))
+    
+    
+    
+    for (i in (c("CpG", "IFNb", "LPS","P3CSK", "PIC", "TNF", "Unstim"))){
+      
+        print(i) 
+        wanted.1 = rownames(macro@meta.data)[macro@meta.data$type == m & macro@meta.data$stimulus == i ]
+        wanted.2 = rownames(macro@meta.data)[macro@meta.data$type == n & macro@meta.data$stimulus == i ]
+        
+        
+        mu1 = apply(pca.macro[wanted.1, 1:nPCs], 2, mean)
+        mu2 = apply(pca.macro[wanted.2, 1:nPCs], 2, mean)
+        cov1 = cov(pca.macro[wanted.1, 1:nPCs])
+        cov2 = cov(pca.macro[wanted.2, 1:nPCs])
+        bd = bhattacharyya.dist(mu1, mu2, Sigma1 = cov1, Sigma2 = cov2)
+        
+        # dist = data.frame(condition = paste0(i, "vsNot",i), bd = bd, type = type)
+        # dist = data.frame(condition = paste0("LPSvs",i), bd = bd, type = type)
+        # dist = data.frame(condition = paste0("TNFvs",i), bd = bd, type = type)
+        # dist = data.frame(condition = paste0("IFNbvs",i), bd = bd, type = type)
+        dist = data.frame(condition = paste0(m, "vs",n),type1=m, type2=n, stimulus = i, bd = bd)
+        
+        
+        if (length(collect_distances)==0){
+          collect_distances = dist
+        }else{
+          collect_distances = rbind(collect_distances, dist ) 
+        }
+        
+      }
+    }
+  }
+  # collect_distances.m$type = factor(collect_distances.m$type, levels= c("PM_B6.LFD","PM_B6.old","PM_B6.HFD" ))
+  colors_list = c("Unstim" = "black", "CpG"="#F8766D", "IFNb"="#B79F00","LPS"= "#00BA38","P3CSK"= "#00BFC4","PIC"= "#619CFF","TNF"= "#F564E3")
+  ggplot(collect_distances[grepl("M0vsM2|M0vsM1|M1_IFNgvsM2",collect_distances$condition),], aes(fill=stimulus, y=bd, x=condition)) +
+    geom_bar(position="dodge", stat="identity")+facet_wrap(~condition, scales = "free_x", nrow = 1)+
+    theme_bw(base_size = 14)+theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+ylab("Distance between distributions")+
+    scale_fill_manual(values = colors_list)
+  
+  
+  
+}
+
+
+#pca without the unstim ISnorm----
+if(0){
+  macro = readRDS("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr.rds")
+  # macro = SCTransform(macro)
+  macro@active.assay = "ISnorm"
+  macro = ScaleData(macro);macro = FindVariableFeatures(macro);
+  # macro@assays$ISnorm@scale.data = macro@assays$ISnorm@data #if want centered, unscaled
+  macro = RunPCA(macro)
+  DimPlot(macro, reduction = "pca", group.by = "type")
+  DimPlot(macro, reduction = "umap", group.by = "stimulus")
+  
+  red = "pca"
+  dimensions = c(1,2)
+  wanted = rownames(macro@meta.data)[macro@meta.data$type=="M0"]
+  list = as.list(wanted);  names(list) = macro@meta.data$stimulus[match(list, rownames(macro@meta.data))]
+  list = split(unlist(list, use.names = FALSE), rep(names(list), lengths(list))) #merge under unique names
+  p1=DimPlot(object = macro, dims = dimensions, cells.highlight = list, reduction = red, group.by = "stimulus", raster = F,sizes.highlight=0.1,cols.highlight = c(rev(hue_pal() (length( unique(names(list)) )) ) ),pt.size = 0.1)+theme(legend.position = "None")+ggtitle("M0")
+  wanted = rownames(macro@meta.data)[macro@meta.data$type=="M1_IFNg"]
+  list = as.list(wanted);  names(list) = macro@meta.data$stimulus[match(list, rownames(macro@meta.data))]
+  list = split(unlist(list, use.names = FALSE), rep(names(list), lengths(list))) #merge under unique names
+  p2=DimPlot(object = macro, dims = dimensions, cells.highlight = list, reduction = red, group.by = "stimulus", raster = F,sizes.highlight=0.1,cols.highlight = c(rev(hue_pal() (length( unique(names(list)) )) ) ),pt.size = 0.1)+theme(legend.position = "None")+ggtitle("M1")
+  wanted = rownames(macro@meta.data)[macro@meta.data$type=="M2_IL4"]
+  list = as.list(wanted);  names(list) = macro@meta.data$stimulus[match(list, rownames(macro@meta.data))]
+  list = split(unlist(list, use.names = FALSE), rep(names(list), lengths(list))) #merge under unique names
+  p3=DimPlot(object = macro, dims = dimensions, cells.highlight = list, reduction = red, group.by = "stimulus", raster = F,sizes.highlight=0.1,cols.highlight = c(rev(hue_pal() (length( unique(names(list)) )) ) ),pt.size = 0.1)+ggtitle("M2")
+  p1|p2|p3
+}
+
+#pca without the unstim of M0/M1/M2 SCT----
+if(0){
   library(scales)
+  macro = readRDS("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr.rds")
   time="3hr"
   red = "pca"
   wanted = rownames(macro@meta.data)[macro@meta.data$timept==time&macro@meta.data$type=="M0"]
@@ -1930,7 +2320,7 @@ collect_all = rbind(collect_all.M0, collect_all.M1, collect_all.M2)
 
 #graph it USE THIS
 ggplot(collect_all[grepl("3hr", collect_all$time),], aes( (cc)))+ 
-  geom_density(aes(color = type,fill=type),alpha=0.2, size = 1)+ theme_bw(base_size = 16)+
+  geom_density(aes(color = type,fill=type),alpha=0.8, size = 1)+ theme_bw(base_size = 16)+
   # geom_point(aes(color = time),position = position_jitter(seed = 1))+
   ggtitle("Single gene output")+
   facet_wrap(~type, ncol=3, scales = "fixed")+
@@ -2147,9 +2537,9 @@ for (i in seq(1:4)){
 
 
 #plot motif output--------------------
-files = list.files("F://scRNAseq_macro/scRNAseq_macro/output/motif_cc/", "knownResults.txt", recursive = T)
+files = list.files("F://scRNAseq_macro/scRNAseq_macro/output/motif_cc/plot/", "knownResults.txt", recursive = T)
 for (i in seq(1:4)){
-  tmp = read.delim(paste0("F://scRNAseq_macro/scRNAseq_macro/output/motif_cc/",files[i])) #files[1]
+  tmp = read.delim(paste0("F://scRNAseq_macro/scRNAseq_macro/output/motif_cc/plot/",files[i])) #files[1]
   # tmp = tmp[tmp$q.value..Benjamini.<0.05,]
   
   frame = data.frame(tmp[,c(1,4)]) #plot lnpval
@@ -2262,9 +2652,9 @@ mutual = readRDS("./infotheo/collect_dimensionbest_ISnorm_Feb2021.rds")
 genes.top2 = unlist(mutual[28,4])
 genes.top5 = unlist(mutual[31,4])
 genes.top15 = unlist(mutual[41,4])
-genes = genes.top15 #c(genes.top2, genes.top5, genes.top15)
+genes = genes.top5 #c(genes.top2, genes.top5, genes.top15)
 
-genesetname = "MItop15"
+genesetname = "MItop5"
 
 for (i in c("3hr")){
   
@@ -2342,6 +2732,7 @@ for (i in c("3hr")){
                             trControl=fitControl)
     
     print(fit_rf_default)
+    fit_rf_default= readRDS(paste0("./analysis_rhapsody_500genes/MLfit_rf_",filename,"_",genesetname,".3hr_",i, ".rds"))
     rfClasses <- predict(fit_rf_default, newdata = testing)
     confusion = confusionMatrix(data = rfClasses, as.factor(testing$label))
     confusion.table = (confusion$table)
@@ -2869,12 +3260,12 @@ for (i in c("M0","M1_IFNg","M2_IL4")){
     #                                          output_path=paste0("F:/scRNAseq_macro/scRNAseq_macro/infotheo/cc_pairwiseProb_", i)) 
   }
 }
-write.table(collect, "./infotheo/collect_polarization.top15genes_3hr_bootstrap.txt", sep="\t",quote = F, row.names = F)
-
+# write.table(collect, "./infotheo/collect_polarization.top15genes_3hr_bootstrap.txt", sep="\t",quote = F, row.names = F)
+collect = read.delim("./infotheo/collect_polarization.top15genes_3hr_bootstrap.txt")
 collect$type = factor(collect$type, levels= c("M0","M1_IFNg","M2_IL4" ))
 collect$stim_cells = factor(collect$stim_cells, levels= c("LPS|PIC|IFNb|TNF|P3CSK|CpG", "LPS|P3CSK|CpG",
                                                           "LPS|PIC|TNF", "LPS|PIC|IFNb", "IFNb|TNF", "PIC|TNF"))
-ggplot(na.omit(collect), aes(stim_cells, cc, fill = type))+geom_bar(stat="identity", position="dodge")+theme_bw(base_size = 16)+ylab("channel capacity")+
+ggplot(na.omit(collect[grepl("^LPS|PIC|IFNb|TNF|P3CSK|CpG$", collect$stim_cells),]), aes(stim_cells, cc, fill = type))+geom_bar(stat="identity", position="dodge")+theme_bw(base_size = 16)+ylab("channel capacity")+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
   geom_errorbar(aes(ymin=cc-sd, ymax=cc+sd), width=.5,position=position_dodge(1))
 
@@ -2993,7 +3384,7 @@ macro = readRDS("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr.rds")
 DimPlot(macro, reduction = "tsne", group.by = "stimulus")
 DimPlot(macro, reduction = "tsne", group.by = "type")
 
-
+# tmp = data.frame(macro@reductions$pca@cell.embeddings)
 pc.scores = read.delim("./output/macrophage_M0M1M2_combined_500genes_DBEC_3hr_prcomp_scores.txt")
 colnames(pc.scores)[1]="Sample"
 pc.scores$stimulus = samptag.all$stimulus[match(pc.scores$Sample, samptag.all$Cell_Index)]
@@ -3046,19 +3437,73 @@ for (m in c("M0","M1_IFNg","M2_IL4")){
 # write.table(collect, "./infotheo/channel_capacity_pairwise_M0M1M2_RSI_3comps.txt",quote=F, sep="\t",row.names = F)
 # write.table(collect, "./infotheo/channel_capacity_pairwise_M0M1M2_RSI_10comps.txt",quote=F, sep="\t",row.names = F)
 
+collect = read.delim("./infotheo/channel_capacity_pairwise_M0M1M2_RSI_3comps.txt")
 collect$type = factor(collect$type, levels= c("M0","M1_IFNg","M2_IL4"))
 colors_list = (c(M0="#F8766D",M1_IFNg="#00BA38",M2_IL4="#619CFF"))
+collect <- transform(collect, stim1 = ifelse(stim1>stim2, stim2, stim1), 
+                     stim2 = ifelse(stim1>stim2, stim1,stim2))
 collect$pair = paste0(collect$stim1, "_",collect$stim2)
 ggplot(na.omit(collect[grepl("M0|M1|M2", collect$type),]), aes(pair, cc, fill = type))+
-  geom_bar(stat="identity", position ="dodge")+theme_bw(base_size = 16)+ylab("channel capacity")+
+  geom_bar(stat="identity", position ="dodge")+theme_bw(base_size = 16)+ylab("max MI (bits)")+
   geom_errorbar(aes(ymin=cc-sd, ymax=cc+sd), width=.5,position=position_dodge(1))+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
   scale_fill_manual(values=colors_list)+
   geom_hline(yintercept = 1, linetype="dotted")+
   # geom_hline(yintercept = log(3)/log(2), linetype="dotted")+
-  geom_hline(yintercept = 2, linetype="dotted")+ylim(0,1)
+  geom_hline(yintercept = 0.5, linetype="dotted")+ylim(0,1)
+
+#plot matrix form
+ggplot(na.omit(collect[grepl("M0|M1|M2", collect$type),]), aes(pair, cc, fill = type))+
+  geom_bar(stat="identity", position ="dodge")+theme_bw(base_size = 16)+ylab("max MI (bits)")+
+  geom_errorbar(aes(ymin=cc-sd, ymax=cc+sd), width=.5,position=position_dodge(1))+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
+  scale_fill_manual(values=colors_list)+ facet_wrap(~type, ncol = 1)+
+  geom_hline(yintercept = 1, linetype="dotted")+
+  # geom_hline(yintercept = log(3)/log(2), linetype="dotted")+
+  geom_hline(yintercept = 0.5, linetype="dotted")+ylim(0,1)
+
+#plot subtraction profile
+collect$diff = collect$cc - c(rep(collect$cc[grepl("M0",collect$type)] ,3))
+ggplot(na.omit(collect), aes(pair, diff, fill = type))+
+  geom_bar(stat="identity", position ="dodge")+theme_bw(base_size = 16)+ylab("max info. difference")+
+  geom_errorbar(aes(ymin=diff-sd, ymax=diff+sd), width=.5,position=position_dodge(1))+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
+  scale_fill_manual(values=colors_list)+ facet_wrap(~type, ncol = 1)
 
 ######################################## Figure 7----
+# Figure 7b----
+library(scales)
+macro = readRDS("./output/macrophage_PMexpts_Feb2021_rmUnstim_500genes_DBEC.rds");
+# macro = readRDS("./output/macrophage_PMexpts_Feb2021_500genes_DBEC.rds");
+DimPlot(macro, reduction = "tsne", group.by = "type")
+colors_list = c('CpG'="#F8766D", 'IFNb'="#B79F00",'LPS'= "#00BA38",'P3CSK'= "#00BFC4",'PIC'= "#619CFF",'TNF'= "#F564E3", 
+                'Unstim'="black",'Unselected' = "gray")
+i = "PM_B6.LFD"
+reduct = "pca" #tsne
+wanted = rownames(macro@meta.data)[macro@meta.data$type==i]
+list = as.list(wanted);  names(list) = macro@meta.data$stimulus[match(list, rownames(macro@meta.data))]
+list = split(unlist(list, use.names = FALSE), rep(names(list), lengths(list))) #merge under unique names
+p=DimPlot(object = macro, reduction = reduct, cells.highlight = list, dims = c(3,4),
+          cols.highlight =  c(rev(hue_pal() (length( unique(names(list)) )+1) )[-6] ),
+          sizes.highlight = .1, #cols=colors_list,
+          group.by = "stimulus", pt.size = .1)+theme(legend.position = "None")
+for (i in c("PM_B6.old", "PM_B6.HFD")){
+  print(i)
+  wanted = rownames(macro@meta.data)[macro@meta.data$type==i]
+  list = as.list(wanted);  names(list) = macro@meta.data$stimulus[match(list, rownames(macro@meta.data))]
+  list = split(unlist(list, use.names = FALSE), rep(names(list), lengths(list))) #merge under unique names
+  p1=DimPlot(object = macro, reduction = reduct, cells.highlight = list, dims = c(3,4),
+             cols.highlight = c(rev(hue_pal() (length( unique(names(list)) )+1) )[-6] ),
+             sizes.highlight = .1, #cols = colors_list,
+             group.by = "stimulus", pt.size = .1)+theme(legend.position = "None")
+  p1
+  # print(DimPlot(object = macro, reduction = 'tsne', cells = wanted, group.by = "stimulus",dims = c(1,2)) +ggtitle(i))
+  # p1=DimPlot(object = macro, reduction = 'tsne', cells = wanted, group.by = "stimulus", dims = c(1,2)) +ggtitle(i)#+xlim(c(-40,40))+ylim(c(-40,40))
+  p=p+p1
+}
+p
+
+
 # Figure 7d ----
 # plot disease channel capacity differences--------
 collect_all = read.delim("./infotheo/SLEMI_singlegene_collectall_PMs_Feb2021_gt120_5stim_ISnorm_500genes.txt")
@@ -3337,8 +3782,8 @@ mi.frame$Sample = mi.frame$stimulus
 colnames(mi.frame)[1]="label"
 
 collect = data.frame()
-nPCs = 20
-list = c("CpG", "P3CSK","LPS", "TNF", "IFNb",  "PIC") 
+nPCs = 3
+list = c("CpG", "IFNb", "LPS", "P3CSK","PIC", "TNF") 
 for (m in c("M0","M1_IFNg","M2_IL4","PM_B6.LFD","PM_B6.old","PM_B6.HFD")){
   print(m)
   
@@ -3346,7 +3791,7 @@ for (m in c("M0","M1_IFNg","M2_IL4","PM_B6.LFD","PM_B6.old","PM_B6.HFD")){
   # pca.macro = as.data.frame(Embeddings(macro[["pca"]]))
   
   if (m =="PM_B6.LFD"|m =="PM_B6.old"|m =="PM_B6.HFD"){
-    list = c( "P3CSK","LPS", "TNF", "IFNb",  "PIC") 
+    list = c( "IFNb", "LPS", "P3CSK","PIC", "TNF") 
   }
   
   for (i in seq(1:(length(list)-1) )){
@@ -3383,9 +3828,11 @@ collect = read.delim("./infotheo/channel_capacity_pairwise_M0M1M2_PMexpts.Feb202
 collect$type = factor(collect$type, levels= c("M0","M1_IFNg","M2_IL4", "PM_B6.LFD","PM_B6.old","PM_B6.HFD"))
 colors_list = (c(M0="#F8766D",M1_IFNg="#00BA38",M2_IL4="#619CFF"))
 colors_list = (c(M0="gray",M1_IFNg="gray",M2_IL4="gray",PM_B6.LFD="#F8766D",PM_B6.old="#00BA38",PM_B6.HFD="#619CFF"))
+collect <- transform(collect, stim1 = ifelse(stim1>stim2, stim2, stim1), 
+                     stim2 = ifelse(stim1>stim2, stim1,stim2))
 collect$pair = paste0(collect$stim1, "_",collect$stim2)
 ggplot(na.omit(collect[!grepl("CpG", collect$pair),]), aes(pair, cc, fill = type))+
-  geom_bar(stat="identity", position ="dodge")+theme_bw(base_size = 16)+ylab("channel capacity")+
+  geom_bar(stat="identity", position ="dodge")+theme_bw(base_size = 16)+ylab("max MI (bits)")+
   geom_errorbar(aes(ymin=cc-sd, ymax=cc+sd), width=.5,position=position_dodge(1))+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
   scale_fill_manual(values=colors_list)+
@@ -3393,6 +3840,24 @@ ggplot(na.omit(collect[!grepl("CpG", collect$pair),]), aes(pair, cc, fill = type
   # geom_hline(yintercept = log(3)/log(2), linetype="dotted")+
   geom_hline(yintercept = 2, linetype="dotted")+ylim(0,1)
 
+# plot matrix format
+ggplot(na.omit(collect[!grepl("CpG", collect$pair)&grepl("PM_", collect$type),]), aes(pair, cc, fill = type))+
+  geom_bar(stat="identity", position ="dodge")+theme_bw(base_size = 16)+ylab("max MI (bits)")+
+  geom_errorbar(aes(ymin=cc-sd, ymax=cc+sd), width=.5,position=position_dodge(1))+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
+  scale_fill_manual(values=colors_list)+ facet_wrap(~type, ncol = 1)+
+  geom_hline(yintercept = 1, linetype="dotted")+
+  # geom_hline(yintercept = log(3)/log(2), linetype="dotted")+
+  geom_hline(yintercept = 0.5, linetype="dotted")+ylim(0,1)
+
+#plot subtraction profile
+collect$diff = collect$cc - c(rep(collect$cc[grepl("M0",collect$type)] ,3), 
+                              rep(collect$cc[grepl("M0",collect$type)&!grepl("CpG", collect$pair)] ,3))
+ggplot(na.omit(collect[!grepl("CpG", collect$pair)&grepl("PM_", collect$type),]), aes(pair, diff, fill = type))+
+  geom_bar(stat="identity", position ="dodge")+theme_bw(base_size = 16)+ylab("max info. difference")+
+  geom_errorbar(aes(ymin=diff-sd, ymax=diff+sd), width=.5,position=position_dodge(1))+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
+  scale_fill_manual(values=colors_list)+ facet_wrap(~type, ncol = 1)
 
 # calc delta RSI----
 if(1){
@@ -3403,7 +3868,29 @@ if(1){
 }
 tmp.cast=  dcast(tmp, pair~type, value.var = 'cc')
 tmp.cast=  cbind(tmp.cast, sd = (dcast(tmp, pair~type, value.var = 'sd')[,-1])^2)# convert to variances
-tmp.cast = na.omit(tmp.cast)
+
+###plot with error bars
+tmp.cast.noPMs = tmp.cast[,!grepl("PM_",colnames(tmp.cast))]#removes PMs
+tmp.cast.noPMs$M0.score = (tmp.cast.noPMs$M0 - tmp.cast.noPMs$M0)^2
+tmp.cast.noPMs$M1.score = (tmp.cast.noPMs$M1_IFNg - tmp.cast.noPMs$M0)^2
+tmp.cast.noPMs$M2.score = (tmp.cast.noPMs$M2_IL4 - tmp.cast.noPMs$M0)^2
+
+tmp.cast.noPMs$M0.sd = (tmp.cast.noPMs$sd.M0 + tmp.cast.noPMs$sd.M0)
+tmp.cast.noPMs$M1.sd = (tmp.cast.noPMs$sd.M1_IFNg + tmp.cast.noPMs$sd.M0)
+tmp.cast.noPMs$M2.sd = (tmp.cast.noPMs$sd.M2_IL4 + tmp.cast.noPMs$sd.M0)
+
+score = data.frame(score = sqrt(colSums(tmp.cast.noPMs[,c(8:10)])),
+                   sd = sqrt(colSums(tmp.cast.noPMs[,c(11:13)])))
+score$type = rownames(score)
+score$type = factor(score$type, levels= c("M0.score","M1.score","M2.score" ))
+colors_list = (c(M0.score="#F8766D",M1.score="#00BA38",M2.score="#619CFF"))
+ggplot(score[grepl("", score$type),], aes(type, score))+geom_bar(stat= "identity", aes(fill = type))+
+  geom_errorbar(aes(ymin=score-sd, ymax=score+sd), width=.3,position=position_dodge(1))+
+  scale_fill_manual(values=colors_list)+
+  theme_bw(base_size = 14)+theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+
+##############################################delta RSI without CpG
+tmp.cast = na.omit(tmp.cast) #removes CpG pairs
 
 tmp.cast$M0.score = (tmp.cast$M0 - tmp.cast$M0)^2
 tmp.cast$M1.score = (tmp.cast$M1_IFNg - tmp.cast$M0)^2
@@ -3428,3 +3915,269 @@ ggplot(score[grepl("", score$type),], aes(type, score))+geom_bar(stat= "identity
   geom_errorbar(aes(ymin=score-sd, ymax=score+sd), width=.3,position=position_dodge(1))+
   scale_fill_manual(values=colors_list)+
   theme_bw(base_size = 14)+theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+
+#fig 7 revision motif enrichment----
+library(enrichTF);library(RcisTarget)
+# library(org.Mm.eg.db)
+library(DOSE);library(clusterProfiler)
+
+collect_all = read.delim("./infotheo/SLEMI_singlegene_collectall_PMs_Feb2021_gt120_5stim_ISnorm_500genes.txt")
+dcast0 = dcast(collect_all[!grepl("0.25|0.5hr|^5hr|1hr|8h|24hr", collect_all$time),], gene~type+time, value.var = "cc")
+dcast0$OLD_3hr.diff = dcast0$PM_B6.LFD_3hr-dcast0$PM_B6.old_3hr
+dcast0$HFD_3hr.diff = dcast0$PM_B6.LFD_3hr-dcast0$PM_B6.HFD_3hr
+dcast0 = na.omit(dcast0)
+dcast0$clusterOLD = ifelse(dcast0$OLD_3hr.diff >0.1, "DOWN", #used 0.2 for BP, 0.1 for UP/DOWN groups
+                          ifelse(dcast0$OLD_3hr.diff <(-0.1), "UP",NA))
+dcast0$clusterHFD = ifelse(dcast0$HFD_3hr.diff >0.1, "DOWN",  #used 0.2 for BP, 0.1 for UP/DOWN groups
+                          ifelse(dcast0$HFD_3hr.diff <(-0.1), "UP",NA))
+dcast0$groups = ifelse((dcast0$clusterOLD=="DOWN" & dcast0$clusterHFD=="DOWN"), "bothDOWN",
+                       ifelse(dcast0$clusterOLD=="DOWN", "OLDonlyDOWN",
+                              ifelse(dcast0$clusterHFD=="DOWN" , "HFDonlyDOWN",
+                                     "bothUP"
+                              )))
+
+genes.to.label = c("Cxcl10","AW112010","Mx1", "Ralgds", "Acod1","Phlda1","Pde4b", "Mx2","Swap70", "Tnfsf9",
+                   "Slamf8","Cav1","Il4ra","Zfp36", "Icosl", "Cmpk2","Ifit3","Nfkbiz","Icam1","Zc3h12a","Peli1",
+                   "Ccl5", "Tnf",  "Il6")
+rownames(dcast0) = dcast0$gene
+p1=ggplot(dcast0,  aes(OLD_3hr.diff, HFD_3hr.diff))+geom_point(aes(color = groups), size =2, alpha = 0.75)+
+  geom_point(data = subset(dcast0, subset = gene %in% genes.to.label),size = 2, color = "red",shape = 21) +
+  geom_hline(yintercept = 0)+geom_vline(xintercept = 0)+
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed")+theme_bw(base_size = 14)
+p1 <- LabelPoints(plot = p1, points = genes.to.label, color = "red", size = I(4),repel = T, xnudge=0.15,ynudge=0)
+p1
+
+#my genelist
+gene <- dcast0$gene
+gene.df <- bitr(gene, fromType = "SYMBOL",
+                toType = c("ENSEMBL", "ENTREZID"),
+                OrgDb = org.Mm.eg.db)
+head(gene.df)
+#TF enrichment-----
+# Load gene sets to analyze. e.g.:
+gene.df$cluster = dcast0$clusterOLD[match(gene.df$SYMBOL, dcast0$gene)]
+geneList1 <- na.omit(gene.df$SYMBOL[gene.df$cluster=="DOWN"])
+geneList2 <- na.omit(gene.df$SYMBOL[gene.df$cluster=="UP"])
+gene.df$cluster = dcast0$clusterHFD[match(gene.df$SYMBOL, dcast0$gene)]
+geneList3 <- na.omit(gene.df$SYMBOL[gene.df$cluster=="DOWN"])
+geneList4 <- na.omit(gene.df$SYMBOL[gene.df$cluster=="UP"])
+geneLists <- list(OLD_DOWN = geneList1,OLD_UP = geneList2,HFD_DOWN = geneList3, HFD_UP = geneList4 )
+head(geneLists$OLD_DOWN)
+
+for (i in seq(1:4)){
+  print(i)
+  # write.table(geneLists[[i]], paste0("./output/channelcapacity_OLD.HFD_difference_", names(geneLists[i]),".txt"), quote=F,sep="\t",row.names=F) 
+  write.table(geneLists[[i]], paste0("./output/channelcapacity_OLD.HFD_difference0.1_", names(geneLists[i]),".txt"), quote=F,sep="\t",row.names=F) 
+}
+# cd /mnt/f/scRNAseq_macro/scRNAseq_macro/output/
+# findMotifs.pl channelcapacity_OLD.HFD_difference_OLD_DOWN.txt mouse /mnt/f/scRNAseq_macro/scRNAseq_macro/output/motif_cc/MotifResults1_OLD_DOWN/ -start -1000 -end 100 -p 4
+# findMotifs.pl channelcapacity_OLD.HFD_difference_OLD_UP.txt mouse /mnt/f/scRNAseq_macro/scRNAseq_macro/output/motif_cc/MotifResults2_OLD_UP/ -start -1000 -end 100 -p 4
+# findMotifs.pl channelcapacity_OLD.HFD_difference_HFD_DOWN.txt mouse /mnt/f/scRNAseq_macro/scRNAseq_macro/output/motif_cc/MotifResults3_HFD_DOWN/ -start -1000 -end 100 -p 4
+# findMotifs.pl channelcapacity_OLD.HFD_difference_HFD_UP.txt mouse /mnt/f/scRNAseq_macro/scRNAseq_macro/output/motif_cc/MotifResults4_HFD_UP/ -start -1000 -end 100 -p 4
+
+# cd /mnt/f/scRNAseq_macro/scRNAseq_macro/output/
+# findMotifs.pl channelcapacity_OLD.HFD_difference0.1_OLD_DOWN.txt mouse /mnt/f/scRNAseq_macro/scRNAseq_macro/output/motif_cc/MotifResults1_OLD_DOWN_diff0.1/ -start -1000 -end 100 -p 4
+# findMotifs.pl channelcapacity_OLD.HFD_difference0.1_OLD_UP.txt mouse /mnt/f/scRNAseq_macro/scRNAseq_macro/output/motif_cc/MotifResults2_OLD_UP_diff0.1/ -start -1000 -end 100 -p 4
+# findMotifs.pl channelcapacity_OLD.HFD_difference0.1_HFD_DOWN.txt mouse /mnt/f/scRNAseq_macro/scRNAseq_macro/output/motif_cc/MotifResults3_HFD_DOWN_diff0.1/ -start -1000 -end 100 -p 4
+# findMotifs.pl channelcapacity_OLD.HFD_difference0.1_HFD_UP.txt mouse /mnt/f/scRNAseq_macro/scRNAseq_macro/output/motif_cc/MotifResults4_HFD_UP_diff0.1/ -start -1000 -end 100 -p 4
+
+#plot motif output--------------------
+files = list.files("F://scRNAseq_macro/scRNAseq_macro/output/motif_cc/plot/", "knownResults.txt", recursive = T)
+files
+for (i in c(1:8)){
+  tmp = read.delim(paste0("F://scRNAseq_macro/scRNAseq_macro/output/motif_cc/plot/",files[i])) #files[1]
+  # tmp = tmp[tmp$q.value..Benjamini.<0.05,]
+  
+  frame = data.frame(tmp[,c(1,4)]) #plot lnpval
+  rownames(frame) = make.unique(as.character(frame$Motif.Name))
+  rownames(frame) = make.unique(gsub("/..*","", rownames(frame)))
+  frame.truncate = frame#[which(frame$Log.P.value < 0),]
+  frame.truncate$type = ifelse(grepl("(IRF)", rownames(frame.truncate)), "IRF", 
+                               ifelse(grepl("(RHD)", rownames(frame.truncate)), "RHD", 
+                                      ifelse(grepl("(bZIP)", rownames(frame.truncate)), "bZIP", 
+                                             ifelse(grepl("(Zf)", rownames(frame.truncate)), "Zf", 
+                                                    ifelse(grepl("(ETS|Ets)", rownames(frame.truncate)), "ETS", 
+                                                           ".other")))))
+  frame.truncate.500 = aggregate(frame.truncate[,c(2,3)], by = list(motif = frame.truncate$type), FUN = min)
+  assign(paste0("p",i), ggplot(frame.truncate.500[!grepl("other", frame.truncate.500$motif),], aes(motif, Log.P.value*-1, fill = motif))+
+           ylim(c(0,26))+
+           geom_bar(stat = "identity", position = position_dodge())+ geom_hline(yintercept = 3, linetype="dashed")+
+           theme_bw(base_size = 16)+theme(legend.position = "None"))
+}
+
+(p2|p4)/(p5|p7) # OLD DOWN|UP / HFD DOWN|UP
+(p1|p3)/(p6|p8) # M1 DOWN|UP / M2 DOWN|UP
+
+#plot scatterplot of each motif----
+motif1 = read.delim(paste0("F://scRNAseq_macro/scRNAseq_macro/output/motif_cc/plot/",files[4]))
+motif2 = read.delim(paste0("F://scRNAseq_macro/scRNAseq_macro/output/motif_cc/plot/",files[7]))
+library(ggrepel)
+motif1$motif2.logP = motif2$Log.P.value[match(motif1$Motif.Name, motif2$Motif.Name)]
+motif1$type = ifelse(grepl("(IRF)", motif1$Motif.Name), "IRF", 
+                    ifelse(grepl("(RHD)", motif1$Motif.Name), "RHD", 
+                           ifelse(grepl("(bZIP)", motif1$Motif.Name), "bZIP", "other")))
+motif1$Motif.Name = gsub("\\(.*", "", motif1$Motif.Name)
+ggplot(motif1, aes(Log.P.value*-1, motif2.logP*-1))+geom_point(size = I(3), aes(color = type))+
+  geom_text_repel(data = motif1[grepl("^IRF|NFkB|Atf|Fos|^JunB|Fra|^BATF|AP-1|^ISRE|Srebp|Egr", motif1$Motif.Name),], mapping = aes(label = Motif.Name))+
+  # xlab("motif.1 -ln(pval)")+ylab("motif.2 -ln(pval)")+
+  xlab("OLD UP -ln(pval)")+ylab("HFD UP -ln(pval)")+
+  # xlab("M1 UP -ln(pval)")+ylab("M2 UP -ln(pval)")+
+  theme_bw()+
+  geom_vline(xintercept = -log(0.01), linetype = "dotted")+
+  geom_hline(yintercept = -log(0.01), linetype = "dotted")
+
+
+
+##################
+#overlap of signature Sanin et al. w/ 500genes
+genes500 = readxl::read_excel("./../SuppTables/TableS1_500genes_targetedseq.xlsx")
+genes.sigs = readxl::read_excel("~/../../Downloads/sciimmunol.abl7482_data_files_s1_to_s3/sciimmunol.abl7482_data_file_s2.xlsx")
+tmp = intersect(genes500$gene, genes.sigs$Gene)
+genes.sigs$in500 = ifelse(genes.sigs$Gene %in%genes500$gene, "Y", "N" )
+table(genes.sigs$in500, genes.sigs$`Target stage`)
+
+#################
+#compare Rhapsody BMDM WT to iMPDM----
+macro0 = readRDS("output/macrophage_BMDM2_WT_MM_500genes_DBEC.rds")
+table(macro0$timept, macro0$stimulus)
+macro1 = readRDS("./output/macrophage_M0_2019samples.3hrXtra_500genes_Dec2020.rds")
+table(macro1$timept, macro1$stimulus)
+
+gene = "Ccl5"
+ymax = 12.5
+pt.size = 0.1
+p1=VlnPlot(object = subset(macro1, subset= (timept=="0.0hr"|timept=="8hr")&type =="M0"&stimulus!="CpG"&stimulus!="LPSlo"&replicate=="rep1"), pt.size = pt.size,
+           features = c(gene), group.by = "stimulus", assay = "ISnorm" , y.max = ymax) +
+  stat_summary(fun.y = median, geom='point', size = 2, colour = "green") +theme(legend.position = "None")+ylab(NULL)+xlab(NULL)+ggtitle(paste0("iMPDM_",gene))
+p2=VlnPlot(object = subset(macro0, subset= type =="BMDM2_WT"&stimulus!="IFNb"), pt.size = pt.size,
+           features = c(gene), group.by = "stimulus", assay = "ISnorm" , y.max = ymax) +
+  stat_summary(fun.y = median, geom='point', size = 2, colour = "green") +theme(legend.position = "None")+ylab(NULL)+xlab(NULL)+ggtitle(paste0("BMDM_",gene))
+p1|p2
+
+################
+# violins rep1 vs rep2 iMPDMs----
+macro0 = readRDS("./output/macrophage_M0_rep2only_500genes_DBEC.rds")
+macro1 = readRDS("./output/macrophage_M0_2019samples.3hrXtra_500genes_Dec2020.rds")
+
+gene = "Cxcl10"
+ymax = 10
+pt.size = 0.1
+p1=VlnPlot(object = subset(macro1, subset= (timept=="0.0hr"|timept=="3hr")&type =="M0"&stimulus!="LPSlo"&replicate=="rep1"), pt.size = pt.size,
+           features = c(gene), group.by = "stimulus", assay = "ISnorm" , y.max = ymax) +
+  stat_summary(fun.y = median, geom='point', size = 2, colour = "green") +theme(legend.position = "None")+ylab(NULL)+xlab(NULL)+ggtitle(paste0("Rep1_",gene))
+p2=VlnPlot(object = subset(macro0, subset= (timept=="0.0hr"|timept=="3hr")&stimulus!="IFNb"), pt.size = pt.size,
+           features = c(gene), group.by = "stimulus", assay = "ISnorm" , y.max = ymax) +
+  stat_summary(fun.y = median, geom='point', size = 2, colour = "green") +theme(legend.position = "None")+ylab(NULL)+xlab(NULL)+ggtitle(paste0("Rep2_",gene))
+p1|p2
+
+################
+# motif analysis on the categories of Fig4-----
+clusters = readxl::read_excel("./../SuppTables/TableS4_gene_regulatory_strategies_allgenes.xlsx")
+cluster.name = clusters$clusters
+for (i in unique(cluster.name)){
+  print(i)
+  write.table(clusters$gene[clusters$clusters==i], paste0("./output/genes2GRSclusters_",gsub("&|\\|","", i),".txt"), quote=F,sep="\t",row.names=F)
+}
+write.table(clusters$gene[grepl("NFkB",clusters$clusters)], paste0("./output/genes2GRSclusters_allNFkB.txt"), quote=F,sep="\t",row.names=F)
+write.table(clusters$gene, paste0("./output/genes2GRSclusters_all500.txt"), quote=F,sep="\t",row.names=F)
+
+# cd /mnt/f/scRNAseq_macro/scRNAseq_macro/output/
+# findMotifs.pl genes2GRSclusters_AP1.txt mouse /mnt/f/scRNAseq_macro/scRNAseq_macro/output/motif_GRSenrichment/MotifResults1_AP1/ -start -1000 -end 100 -p 4
+# findMotifs.pl genes2GRSclusters_IRF.txt mouse /mnt/f/scRNAseq_macro/scRNAseq_macro/output/motif_GRSenrichment/MotifResults2_IRF/ -start -1000 -end 100 -p 4
+# findMotifs.pl genes2GRSclusters_NFkB.txt mouse /mnt/f/scRNAseq_macro/scRNAseq_macro/output/motif_GRSenrichment/MotifResults3_NFkB/ -start -1000 -end 100 -p 4
+# findMotifs.pl genes2GRSclusters_NFkBp38.txt mouse /mnt/f/scRNAseq_macro/scRNAseq_macro/output/motif_GRSenrichment/MotifResults4_NFkBp38/ -start -1000 -end 100 -p 4
+# findMotifs.pl genes2GRSclusters_NFkBIRF.txt mouse /mnt/f/scRNAseq_macro/scRNAseq_macro/output/motif_GRSenrichment/MotifResults5_NFkBIRF/ -start -1000 -end 100 -p 4
+# findMotifs.pl genes2GRSclusters_allNFkB.txt mouse /mnt/f/scRNAseq_macro/scRNAseq_macro/output/motif_GRSenrichment/MotifResults6_allNFkB/ -start -1000 -end 100 -p 4
+
+#plot
+files = list.files("F://scRNAseq_macro/scRNAseq_macro/output/motif_GRSenrichment/", "knownResults.txt", recursive = T)
+files
+for (i in c(1:6)){
+  tmp = read.delim(paste0("F://scRNAseq_macro/scRNAseq_macro/output/motif_GRSenrichment/",files[i])) #files[1]
+  # tmp = tmp[tmp$q.value..Benjamini.<0.05,]
+  
+  frame = data.frame(tmp[,c(1,4)]) #plot lnpval
+  rownames(frame) = make.unique(as.character(frame$Motif.Name))
+  rownames(frame) = make.unique(gsub("/..*","", rownames(frame)))
+  frame.truncate = frame#[which(frame$Log.P.value < 0),]
+  frame.truncate$type = ifelse(grepl("(IRF)", rownames(frame.truncate)), "IRF", 
+                               ifelse(grepl("(RHD)", rownames(frame.truncate)), "RHD", 
+                                      ifelse(grepl("(bZIP)", rownames(frame.truncate)), "bZIP", 
+                                             ifelse(grepl("(Zf)", rownames(frame.truncate)), "Zf", 
+                                                    ifelse(grepl("(ETS|Ets)", rownames(frame.truncate)), "ETS", 
+                                                           ".other")))))
+  frame.truncate.500 = aggregate(frame.truncate[,c(2,3)], by = list(motif = frame.truncate$type), FUN = min)
+  assign(paste0("p",i), ggplot(frame.truncate.500[!grepl("other", frame.truncate.500$motif),], aes(motif, Log.P.value*-1, fill = motif))+
+           ylim(c(0,31))+
+           geom_bar(stat = "identity", position = position_dodge())+ geom_hline(yintercept = 3, linetype="dashed")+
+           theme_bw(base_size = 16)+theme(legend.position = "None"))
+}
+
+p1|p2|p6 # Ap1, IRF, all NFkB clusters
+  
+#plot table format
+files = list.files("F://scRNAseq_macro/scRNAseq_macro/output/motif_GRSenrichment/", "knownResults.txt", recursive = T)
+files
+for (i in c(1)){
+  tmp = read.delim(paste0("F://scRNAseq_macro/scRNAseq_macro/output/motif_GRSenrichment/",files[i])) #files[1]
+  frame = data.frame(tmp[,c(1,4)]) #plot lnpval
+}
+for (i in c(2:6)){
+  tmp = read.delim(paste0("F://scRNAseq_macro/scRNAseq_macro/output/motif_GRSenrichment/",files[i])) #files[1]
+  # tmp = tmp[tmp$q.value..Benjamini.<0.05,]
+  frame = cbind(frame, tmp$Log.P.value[match(frame$Motif.Name, tmp$Motif.Name)]) #plot lnpval
+}
+rownames(frame) = make.unique(as.character(frame$Motif.Name))
+rownames(frame) = make.unique(gsub("/..*","", rownames(frame)))
+frame.truncate = frame[rowSums(frame[,c(2:4,7)] < log(0.001)) >0,]
+colnames(frame.truncate)=c("Motif", "AP1","IRF","NFkB","NFkB|IRF","NFkB&p38","allNFkB")
+pheatmap(frame.truncate[,c(2:4,7)]*-1, scale = "none", clustering_method = "ward.D2", 
+         colorRampPalette((brewer.pal(n = 11, name = "Reds")))(103),
+         cluster_cols = F, cluster_rows = T, show_rownames = T, display_numbers = T )
+  
+# search motif instances in gene promoter----
+# findMotifs.pl lpsGenes.txt mouse MotifOutputDirectory/ -find motif1.motif > outputfile.txt
+# OR
+# annotatePeaks.pl tss mm10 -list <gene id list> -size -500,250 -hist 10 -m yy1.motif > outputfile.txt
+
+# cd /mnt/f/scRNAseq_macro/scRNAseq_macro/output/motif_GRSenrichment/
+# annotatePeaks.pl tss mm10 -list ./../genes2GRSclusters_all500.txt -size -1000,250 -m ap1.motif irf3.motif irf1.motif nfkb.motif nfkb-p50.motif > output_findMotifs_all500.txt
+
+# for getting the histograms 
+# annotatePeaks.pl tss mm10 -list ./../genes2GRSclusters_AP1.txt -size -1000,500 -hist 10 -m ap1.motif irf3.motif nfkb.motif srf.motif > output_ap1_genes.txt
+# annotatePeaks.pl tss mm10 -list ./../genes2GRSclusters_IRF.txt -size -1000,500 -hist 10 -m ap1.motif irf3.motif nfkb.motif srf.motif > output_irf_genes.txt
+# annotatePeaks.pl tss mm10 -list ./../genes2GRSclusters_NFkB.txt -size -1000,500 -hist 10 -m ap1.motif irf3.motif nfkb.motif srf.motif > output_nfkb_genes.txt
+# annotatePeaks.pl tss mm10 -list ./../genes2GRSclusters_NFkBp38.txt -size -1000,500 -hist 10 -m ap1.motif irf3.motif nfkb.motif srf.motif > output_nfkbp38_genes.txt
+# annotatePeaks.pl tss mm10 -list ./../genes2GRSclusters_NFkBIRF.txt -size -1000,500 -hist 10 -m ap1.motif irf3.motif nfkb.motif srf.motif > output_nfkbirf_genes.txt
+# annotatePeaks.pl tss mm10 -list ./../genes2GRSclusters_allNFkB.txt -size -1000,500 -hist 10 -m ap1.motif irf3.motif nfkb.motif srf.motif > output_allnfkb_genes.txt
+
+#plot motif bars
+assignGRS =readxl::read_excel("F://BACKUP_USB_20200710_active/Projects_writing/response-specificity/CellSystems_sub/TableS4_gene_regulatory_strategies_allgenes.xlsx")
+assignGRS$HOMER_AP1 = gsub("\\s*\\([^\\)]+\\)","",as.character(assignGRS$HOMER_AP1))
+assignGRS$HOMER_NFkB = gsub("\\s*\\([^\\)]+\\)","",as.character(assignGRS$HOMER_NFkB))
+assignGRS$HOMER_IRF = gsub("\\s*\\([^\\)]+\\)","",as.character(assignGRS$HOMER_IRF))
+
+assignGRS$HOMER_AP1 = lapply(lapply(lapply(str_split(assignGRS$HOMER_AP1, ","), FUN = as.numeric), FUN = abs),FUN=min)
+assignGRS$HOMER_NFkB = lapply(lapply(lapply(str_split(assignGRS$HOMER_NFkB, ","), FUN = as.numeric), FUN = abs),FUN=min)
+assignGRS$HOMER_IRF = lapply(lapply(lapply(str_split(assignGRS$HOMER_IRF, ","), FUN = as.numeric), FUN = abs),FUN=min)
+
+dist2TSS = 250
+assignGRS$HOMER_AP1 = ifelse(assignGRS$HOMER_AP1>dist2TSS|assignGRS$HOMER_AP1==0|assignGRS$HOMER_AP1=="NA"|is.na(assignGRS$HOMER_AP1),NA,"AP1")
+assignGRS$HOMER_NFkB = ifelse(assignGRS$HOMER_NFkB>dist2TSS|assignGRS$HOMER_NFkB==0|assignGRS$HOMER_NFkB=="NA"|is.na(assignGRS$HOMER_NFkB),NA,"NFkB")
+assignGRS$HOMER_IRF = ifelse(assignGRS$HOMER_IRF>dist2TSS|assignGRS$HOMER_IRF==0|assignGRS$HOMER_IRF=="NA"|is.na(assignGRS$HOMER_IRF),NA,"IRF")
+
+assignGRS$AREs = ifelse(assignGRS$AREs==1, NA, assignGRS$AREs)
+
+assignGRS.m = melt(assignGRS[,-c(2,4,8,12)], id.vars = "gene")
+assignGRS.m$rank = seq(1:nrow(assignGRS))
+# ggplot(subset(assignGRS.m,!is.na(value)), aes(rank,variable)) + 
+#   geom_point(aes(color = value), size =2, alpha=0.5, shape=18)+#position = position_jitter(w = 0, h = 0.2)) +
+#   # geom_point(subset(assignGRS.m,is.na(value)),aes(color = value), alpha =0.5,position = position_jitter(w = 0, h = 0.2)) +
+#   theme_bw() +
+#   theme(axis.text.x=element_text(angle=60, hjust=1)) 
+
+ggplot(subset(assignGRS.m,!is.na(value)), aes(rank)) + facet_wrap(~variable,ncol = 1)+
+  geom_bar(aes(color = value), size =0.5, alpha=0.5)+#position = position_jitter(w = 0, h = 0.2)) +
+  # geom_point(subset(assignGRS.m,is.na(value)),aes(color = value), alpha =0.5,position = position_jitter(w = 0, h = 0.2)) +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=60, hjust=1)) 
