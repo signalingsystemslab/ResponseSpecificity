@@ -27,4 +27,4 @@ where fA, fN, fI, and fIN are logic gates for transcription factor acitivities a
 
 Simulating these GRSs and normalizing to max across all stimuli results in distinctive gene expression patterns for each GRS, and the best match assigned to individual genes. 
 
-<img src="/plots/simulation_all.png" width="100%" />
+<img src="genes2GRS/plots/simulation_all.png" width="100%" />
