@@ -1,5 +1,5 @@
-# ResponseSpecificity
-Quantifying the Response Specificity of macrophages
+# Response Specificity
+Quantifying the Response Specificity of Macrophages
 
 This repository contains code for generating computational models to quantify macrophage Response Specificity. 
 The input counts matrix containing single cell RNA abundance log normalized counts (see Methods) can be found in the output subfolder, 
