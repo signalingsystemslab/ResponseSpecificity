@@ -2994,7 +2994,7 @@ ggplot(table.m[grepl("F1|Balanced", table.m$variable),], aes(stim, value, fill =
   theme_bw(base_size = 20)+facet_grid(~variable)+theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 
 
-# Figure 5h
+# Figure 5h Gene Ontology----
 # biological functions---
 library(clusterProfiler)
 library(enrichplot)
@@ -3007,6 +3007,7 @@ library(enrichplot)
 library(enrichTF);library(RcisTarget)
 library(org.Mm.eg.db)
 library(DOSE)
+library(reshape2)
 
 collect_all = read.delim("./infotheo/SLEMI_singlegene_M0M1M2_ISnorm_500genes.txt")
 dcast0 = dcast(collect_all[!grepl("0.25|0.5hr|^5hr|1hr|8h|24hr", collect_all$time),], gene~type+time, value.var = "cc")
@@ -3022,6 +3023,7 @@ dcast0$groups = ifelse((dcast0$clusterM1=="DOWN" & dcast0$clusterM2=="DOWN"), "b
                               ifelse(dcast0$clusterM2=="DOWN" , "M2onlyDOWN",
                                      "bothUP"
                               )))
+write.table(dcast0,"F://scRNAseq_macro/SuppTables/TableS6_GOgroups.txt", quote=F,row.names = F, sep = "\t")
 
 genes.to.label = c("Cxcl10","Tgtp1","Rsad2","Irf7","Trim21","Ifi205","Gbp7", 
                    "Ccl5", "Tnf", "Tnfaip3","Gclm", "Il6",
@@ -3470,8 +3472,11 @@ p1
 library(scales)
 macro = readRDS("./output/macrophage_PMexpts_Feb2021_rmUnstim_500genes_DBEC.rds");
 # macro = readRDS("./output/macrophage_PMexpts_Feb2021_500genes_DBEC.rds");
-p1=DimPlot(macro, reduction = "tsne", group.by = "type")
-p2=FeaturePlot(macro, reduction = "tsne",ncol = 2, features = c("Pilra","Il1b", "Serpinb2", "Retnla"))
+colors_list = (c(PM_B6.LFD="#F8766D",PM_B6.old="#00BA38",PM_B6.HFD="#619CFF"))
+p1=DimPlot(macro, reduction = "tsne", group.by = "type")+
+  scale_color_manual(values= colors_list)
+p1
+p2=FeaturePlot(macro, reduction = "tsne",ncol = 2, features = c("Retnla","Serpinb2","Cd14", "Pilra" ))
 p2
 colors_list = c('CpG'="#F8766D", 'IFNb'="#B79F00",'LPS'= "#00BA38",'P3CSK'= "#00BFC4",'PIC'= "#619CFF",'TNF'= "#F564E3", 
                 'Unstim'="black",'Unselected' = "gray")
@@ -4153,6 +4158,8 @@ pheatmap(frame.truncate[,c(2,4,6,5,3)]*-1, scale = "none", clustering_method = "
 # annotatePeaks.pl tss mm10 -list ./../genes2GRSclusters_allNFkB.txt -size -1000,500 -hist 10 -m ap1.motif irf3.motif nfkb.motif srf.motif > output_allnfkb_genes.txt
 
 #plot motif bars
+if(1){
+library(stringr)
 assignGRS =readxl::read_excel("F://BACKUP_USB_20200710_active/Projects_writing/response-specificity/CellSystems_sub/TableS4_gene_regulatory_strategies_allgenes.xlsx")
 assignGRS$HOMER_AP1 = gsub("\\s*\\([^\\)]+\\)","",as.character(assignGRS$HOMER_AP1))
 assignGRS$HOMER_NFkB = gsub("\\s*\\([^\\)]+\\)","",as.character(assignGRS$HOMER_NFkB))
@@ -4162,14 +4169,15 @@ assignGRS$HOMER_AP1 = lapply(lapply(lapply(str_split(assignGRS$HOMER_AP1, ","), 
 assignGRS$HOMER_NFkB = lapply(lapply(lapply(str_split(assignGRS$HOMER_NFkB, ","), FUN = as.numeric), FUN = abs),FUN=min)
 assignGRS$HOMER_IRF = lapply(lapply(lapply(str_split(assignGRS$HOMER_IRF, ","), FUN = as.numeric), FUN = abs),FUN=min)
 
-dist2TSS = 250
+dist2TSS = 300
 assignGRS$HOMER_AP1 = ifelse(assignGRS$HOMER_AP1>dist2TSS|assignGRS$HOMER_AP1==0|assignGRS$HOMER_AP1=="NA"|is.na(assignGRS$HOMER_AP1),NA,"AP1")
 assignGRS$HOMER_NFkB = ifelse(assignGRS$HOMER_NFkB>dist2TSS|assignGRS$HOMER_NFkB==0|assignGRS$HOMER_NFkB=="NA"|is.na(assignGRS$HOMER_NFkB),NA,"NFkB")
 assignGRS$HOMER_IRF = ifelse(assignGRS$HOMER_IRF>dist2TSS|assignGRS$HOMER_IRF==0|assignGRS$HOMER_IRF=="NA"|is.na(assignGRS$HOMER_IRF),NA,"IRF")
 
-assignGRS$AREs = ifelse(assignGRS$AREs==1, NA, assignGRS$AREs)
+assignGRS$AREs = ifelse(assignGRS$AREs>=2, "NFkB&p38", NA)
 
-assignGRS.m = melt(assignGRS[,c(1,4,5,6,7,8,10:12,3)], id.vars = "gene")
+write.table(assignGRS[,c(1:3,5, 7:8, 14, 9,11:13, 4)], "F://scRNAseq_macro/SuppTables/TableS4_gene_regulatory_strategies_allgenes_refs.txt", quote =F, sep = "\t", row.names = F)
+assignGRS.m = melt(assignGRS[,c(1,5, 7:8, 14, 9,11:13, 4)], id.vars = "gene")
 assignGRS.m$rank = seq(1:nrow(assignGRS))
 # ggplot(subset(assignGRS.m,!is.na(value)), aes(rank,variable)) + 
 #   geom_point(aes(color = value), size =2, alpha=0.5, shape=18)+#position = position_jitter(w = 0, h = 0.2)) +
@@ -4177,8 +4185,15 @@ assignGRS.m$rank = seq(1:nrow(assignGRS))
 #   theme_bw() +
 #   theme(axis.text.x=element_text(angle=60, hjust=1)) 
 
-ggplot(subset(assignGRS.m,!is.na(value)), aes(rank)) + facet_wrap(~variable,ncol = 1)+
+ggplot(subset(assignGRS.m,!is.na(value)), aes(rank)) + facet_wrap(~variable,ncol = 1, strip.position = "left")+
   geom_bar(aes(color = value), size =0.5, alpha=0.5)+#position = position_jitter(w = 0, h = 0.2)) +
   # geom_point(subset(assignGRS.m,is.na(value)),aes(color = value), alpha =0.5,position = position_jitter(w = 0, h = 0.2)) +
-  theme_bw() +
+  theme_bw(base_size = 10) + 
   theme(axis.text.x=element_text(angle=60, hjust=1)) 
+}
+
+#plot ActD data----
+ggplot(assignGRS, aes(clusters, (ActD_HLchange_3hr), color = clusters) )+
+  geom_violin()+geom_point(position = "jitter")+ylim(-500,1000)
+
+                           

@@ -25,10 +25,11 @@ where fA, fN, fI, and fIN are logic gates for transcription factor acitivities a
 	fIN<-(1.0-k0)*(((ktN*nfkb)^n+(ktI*irf)^n+(ktN*ktI*nfkb*irf)^n)/(1.0+(ktN*nfkb)^n+(ktI*irf)^n+(ktN*ktI*nfkb*irf)^n))+k0
 ```
 
-Simulating these GRSs and normalizing to max across all stimuli results in distinctive gene expression patterns for each GRS, and the best match was assigned to individual genes as an initial inference of the gene's regulatory strategy. 
+Simulating these GRSs and normalizing to max across all stimuli results in distinctive gene expression patterns for each GRS, and the best match was assigned to individual genes as an initial inference of the gene's regulatory strategy (Table S4).
 
 ![Simulation of all GRSs](./plots/simulation_all.png)
 
-For example, Dusp8 was assigned to AP1, and Ifit1 was assigned to IRF. 
+For example, Dusp8 was assigned to AP1, Ifit1 to IRF, and Tnf to NFκB. 
 ![Dusp8 bulk dynamics](./plots/data_Dusp8.png)
 ![Ifit1 bulk dynamics](./plots/data_Ifit1.png)
+![Tnf bulk dynamics](./plots/data_Tnf.png)
