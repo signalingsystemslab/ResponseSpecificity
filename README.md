@@ -7,7 +7,7 @@ along with correspondence of cell barcodes to meta data.
 The script figures_run.R contains compiled code from all figures in the paper. In particular,
 - code for training machine learning models that can be used to assess ligand specificity (Figure 1).
 - code for information theoretic frameworks that are employed to quantify the Response Specificity of genes and genesets (Figure 4).
-- code for identifying genes that contribute to a summary metric for Response Specificity, called the Response Specificity Score (Figure 6). 
+- code for identifying genes that contribute to a summary metric for Response Specificity, called the Response Specificity Index (Figure 6). 
 
 Intermediate files that are generated as the result of more time-intensive computations are in the folders ./infotheo and ./ml_models.
 Processed scRNAseq data related to Figure 1 (naive macrophages), Figure 5 (polarized macrophages), and Figure 7 (peritoneal macrophages),are provided as .rds files in the folder ./output. 
