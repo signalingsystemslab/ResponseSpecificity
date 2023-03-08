@@ -4176,19 +4176,54 @@ assignGRS$HOMER_IRF = ifelse(assignGRS$HOMER_IRF>dist2TSS|assignGRS$HOMER_IRF==0
 
 assignGRS$AREs = ifelse(assignGRS$AREs>=2, "NFkB&p38", NA)
 
-write.table(assignGRS[,c(1:3,5, 7:8, 14, 9,11:13, 4)], "F://scRNAseq_macro/SuppTables/TableS4_gene_regulatory_strategies_allgenes_refs.txt", quote =F, sep = "\t", row.names = F)
-assignGRS.m = melt(assignGRS[,c(1,5, 7:8, 14, 9,11:13, 4)], id.vars = "gene")
+threshold = 1000
+assignGRS$`Wang NFkB` = ifelse(assignGRS$`Wang NFkB`<threshold, "NFkB", NA)
+assignGRS$`Wang IRF` = ifelse(assignGRS$`Wang IRF`<threshold, "IRF", NA)
+assignGRS$`Wang MAPK` = ifelse(assignGRS$`Wang MAPK`<threshold, "AP1", NA)
+assignGRS$`Wang NFkB*IRF` = ifelse(assignGRS$`Wang NFkB*IRF`<threshold, "NFkB|IRF", NA)
+assignGRS$`Wang NFkB+IRF` = ifelse(assignGRS$`Wang NFkB+IRF`<threshold, "NFkB|IRF", NA)
+assignGRS$`Wang NFkB*MAPK` = ifelse(assignGRS$`Wang NFkB*MAPK`<threshold, "NFkB&p38", NA)
+
+assignGRS$`Wang NFkB` = ifelse(is.na(assignGRS$`Wang NFkB`), NA,
+                               ifelse(assignGRS$`Wang NFkB`==assignGRS$clusters,"NFkB", "x.other"))
+assignGRS$`Wang IRF` = ifelse(is.na(assignGRS$`Wang IRF`), NA,
+                              ifelse(assignGRS$`Wang IRF`==assignGRS$clusters,"IRF", "x.other"))
+assignGRS$`Wang MAPK` = ifelse(is.na(assignGRS$`Wang MAPK`), NA,
+                               ifelse(assignGRS$`Wang MAPK`==assignGRS$clusters,"AP1", "x.other"))
+assignGRS$`Wang NFkB*IRF` = ifelse(is.na(assignGRS$`Wang NFkB*IRF`), NA,
+                                   ifelse(assignGRS$`Wang NFkB*IRF`==assignGRS$clusters,"NFkB|IRF", "x.other"))
+assignGRS$`Wang NFkB+IRF` = ifelse(is.na(assignGRS$`Wang NFkB+IRF`), NA,
+                                   ifelse(assignGRS$`Wang NFkB+IRF`==assignGRS$clusters,"NFkB|IRF", "x.other"))
+assignGRS$`Wang NFkB*MAPK` = ifelse(is.na(assignGRS$`Wang NFkB*MAPK`), NA,
+                                    ifelse(assignGRS$`Wang NFkB*MAPK`==assignGRS$clusters,"NFkB&p38", "x.other"))
+
+#collapse Wang rows
+tmp = assignGRS[,c(17:22)]
+tmp[is.na(tmp)] <- "z.NA"
+str(tmp)
+library(matrixStats)
+tmp$Wang2021 = apply(tmp[], 1, function(x) {sort(x)[1] } )
+assignGRS$Wang2021 = gsub("z.NA",NA, tmp$Wang2021)
+table(assignGRS$Wang2021)
+# write.table(assignGRS[,c(1,5, 7:8, 14, 9,11:13, 23, 4)], "F://scRNAseq_macro/SuppTables/TableS4_gene_regulatory_strategies_Wang2021final.txt", quote =F, sep = "\t", row.names = F)
+
+# write.table(assignGRS[,c(1:3,5, 7:8, 14, 9,11:13, 4)], "F://scRNAseq_macro/SuppTables/TableS4_gene_regulatory_strategies_allgenes_refs.txt", quote =F, sep = "\t", row.names = F)
+assignGRS.m = melt(assignGRS[,c(1,5, 7:8, 14, 9,11:13, 23, 4)], id.vars = "gene")
 assignGRS.m$rank = seq(1:nrow(assignGRS))
-# ggplot(subset(assignGRS.m,!is.na(value)), aes(rank,variable)) + 
-#   geom_point(aes(color = value), size =2, alpha=0.5, shape=18)+#position = position_jitter(w = 0, h = 0.2)) +
+# ggplot(subset(assignGRS.m,!is.na(value)), aes(rank,variable)) +
+#   geom_point(aes(color = value), size =2, shape=18)+#position = position_jitter(w = 0, h = 0.2)) +
 #   # geom_point(subset(assignGRS.m,is.na(value)),aes(color = value), alpha =0.5,position = position_jitter(w = 0, h = 0.2)) +
 #   theme_bw() +
-#   theme(axis.text.x=element_text(angle=60, hjust=1)) 
+#   scale_color_manual(values = c("AP1"="#F8766D","IRF"="#A3A500","NFkB"="#00BF7D","NFkB&p38"="#00B0F6","NFkB|IRF"="#E76BF3","x.other"= "gray"))+
+#   theme(axis.text.x=element_text(angle=60, hjust=1))
 
+library(scales)
+show_col(hue_pal()(5));hue_pal()(5)
 ggplot(subset(assignGRS.m,!is.na(value)), aes(rank)) + facet_wrap(~variable,ncol = 1, strip.position = "left")+
   geom_bar(aes(color = value), size =0.5, alpha=0.5)+#position = position_jitter(w = 0, h = 0.2)) +
   # geom_point(subset(assignGRS.m,is.na(value)),aes(color = value), alpha =0.5,position = position_jitter(w = 0, h = 0.2)) +
   theme_bw(base_size = 10) + 
+  scale_color_manual(values = c("AP1"="#F8766D","IRF"="#A3A500","NFkB"="#00BF7D","NFkB&p38"="#00B0F6","NFkB|IRF"="#E76BF3","x.other"= "gray"))+
   theme(axis.text.x=element_text(angle=60, hjust=1)) 
 }
 
